@@ -2,3 +2,10 @@
 credentiel
 node_modules
 .cache
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+*.tsbuildinfo
+.DS_Store
