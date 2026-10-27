@@ -24,7 +24,7 @@ export function PickedList({ picked, onChange, onRemove }: { picked: Picked[]; o
               step={1}
               defaultValue={p.mark}
               aria-label={'mark for ' + p.name}
-              className={cn(PILL, 'box-border w-[54px] px-[6px] py-[4px] text-center focus:border-[#1a1a1a]')}
+              className={cn(PILL, 'box-border w-[54px] px-[6px] py-[4px] text-center focus:border-ink')}
               onChange={(e) => onChange(p.key, { mark: clampMark(e.target.value) })}
             />
             <button

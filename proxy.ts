@@ -13,8 +13,6 @@ export function proxy(request: NextRequest) {
   // the page only ever calls its own api, so refuse other sites' scripts
   const site = request.headers.get('sec-fetch-site');
   if (site && site !== 'same-origin' && site !== 'none' && /^\/(api|img)\//.test(pathname)) return fail(403, 'forbidden');
-  // there is no icon; say so once a week instead of rendering a 404 page each time
-  if (pathname === '/favicon.ico') return new Response(null, { status: 204, headers: { 'Cache-Control': 'public, max-age=604800' } });
 
   // strict: no inline code except next's own (marked with this request's nonce), no
   // eval, nothing loaded from anywhere but this server

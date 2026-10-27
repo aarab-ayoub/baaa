@@ -123,7 +123,7 @@ export function CalculatorView() {
             autoComplete="off"
             spellCheck={false}
             aria-label="current level"
-            className={cn(BIG, 'w-[2.9em] rounded-none border-0 border-b-2 border-dashed border-[#ddd] bg-transparent p-0 pb-[2px] text-right text-[#1a1a1a] [-moz-appearance:textfield] focus:border-b-[#1a1a1a]')}
+            className={cn(BIG, 'w-[2.9em] rounded-none border-0 border-b-2 border-dashed border-[#ddd] bg-transparent p-0 pb-[2px] text-right text-[#1a1a1a] [-moz-appearance:textfield] focus:border-b-ink')}
             value={cur}
             onChange={(e) => setCur(e.target.value)}
             onBlur={() => setCur(fix(readLevel(cur)))}
@@ -131,12 +131,12 @@ export function CalculatorView() {
           <span className="text-[26px] text-[#c8c8c8]" aria-hidden="true">
             →
           </span>
-          <span className={cn(BIG, 'min-w-[2.9em] text-left text-[#d0d0d0] transition-[color] duration-200 ease-[ease]', total > 0 && 'text-[#1a1a1a]')}>{end.toFixed(2)}</span>
+          <span className={cn(BIG, 'min-w-[2.9em] text-left text-[#d0d0d0] transition-[color] duration-200 ease-[ease]', total > 0 && 'text-ink')}>{end.toFixed(2)}</span>
         </div>
         <div className="relative mx-auto mt-[18px] h-[6px] max-w-[420px] overflow-hidden rounded-[999px] bg-[#efefef]" aria-hidden="true">
           <div className="absolute top-0 bottom-0 left-0 bg-[#cfcfcf] transition-[width,left] duration-[250ms] ease-[ease]" style={{ width: nowPct + '%' }} />
           <div
-            className="absolute top-0 bottom-0 left-0 bg-[#1a1a1a] transition-[width,left] duration-[250ms] ease-[ease]"
+            className="absolute top-0 bottom-0 left-0 bg-coral transition-[width,left] duration-[250ms] ease-[ease]"
             style={{ left: nowPct + '%', width: Math.max(0, endPct - nowPct) + '%' }}
           />
         </div>

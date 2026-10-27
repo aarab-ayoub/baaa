@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 
 // the small round buttons and boxes of the calculator
 export const PILL = 'rounded-[999px] border border-[#e3e3e3] bg-white px-[11px] py-[4px] text-[12px] leading-[1.4] text-[#555]';
-export const PILL_ON = 'border-[#1a1a1a] bg-[#1a1a1a] text-white hover:border-[#1a1a1a]';
+export const PILL_ON = 'border-ink bg-ink text-white hover:border-ink';
 
 export const PRESETS = [100, 115, 125];
 export const clampMark = (v: unknown) => Math.min(125, Math.max(0, Math.round(Number(v) || 0)));
@@ -23,7 +23,7 @@ export function Marks({ mark, other, onPreset, onOther }: { mark: number; other:
         step={1}
         placeholder="other"
         aria-label="other mark"
-        className={cn(PILL, 'box-border w-[72px] text-center focus:border-[#1a1a1a]')}
+        className={cn(PILL, 'box-border w-[72px] text-center focus:border-ink')}
         value={other}
         onChange={(e) => onOther(e.target.value)}
       />
@@ -38,7 +38,7 @@ export function BonusToggle({ on, onChange }: { on: boolean; onChange: (on: bool
       <span
         className={cn(
           PILL,
-          'inline-block peer-checked:border-[#1a1a1a] peer-checked:bg-[#1a1a1a] peer-checked:text-white',
+          'inline-block peer-checked:border-ink peer-checked:bg-ink peer-checked:text-white',
           'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#9ac]'
         )}
       >
