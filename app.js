@@ -14,6 +14,7 @@ let scrollPending = false;
 let me = null; // the logged-in student
 let defaultCampus = '75';
 const campusData = new Map(); // campus id -> { data, at }, so switching back is instant
+let campusById = new Map(); // id -> { id, name, country }, in the api's country order
 
 function h(tag, props, ...kids) {
   const el = document.createElement(tag);
@@ -29,14 +30,23 @@ function h(tag, props, ...kids) {
   return el;
 }
 
-// state lives in the hash so any view can be shared: #c=75&s=absorbed&y=2024&k=506&p=2
+// state lives in the hash so any view can be shared:
+//   ranking     #c=75&s=absorbed&y=2024&k=506&p=2
+//   transfers   #transfers&c=21&f=21&t=FR&m=moving&y=2023
+//   calculator  #calc&l=7.42
 function state() {
   const q = new URLSearchParams(location.hash.slice(1));
+  // origin / destination: one campus id, or a whole country by its code
+  const place = (k) => (/^(\d{1,5}|[A-Z]{2})$/.test(q.get(k)) ? q.get(k) : '');
   return {
     calc: q.has('calc'),
+    transfers: q.has('transfers'),
     level: q.get('l'),
     campus: /^\d{1,5}$/.test(q.get('c')) ? q.get('c') : defaultCampus,
     status: q.get('s') === 'absorbed' ? 'absorbed' : 'active',
+    from: place('f'),
+    to: place('t'),
+    move: ['moving', 'arrived'].includes(q.get('m')) ? q.get('m') : '',
     promo: /^\d{4}$/.test(q.get('y')) ? q.get('y') : '',
     coal: /^\d{1,6}$/.test(q.get('k')) ? Number(q.get('k')) : 0,
     page: Math.min(999, Math.max(1, parseInt(q.get('p'), 10) || 1)),
@@ -44,6 +54,8 @@ function state() {
 }
 
 let lastRank = {};
+let lastMoves = {};
+let shownCampus = null; // the ranking and the transfers always open on the same campus
 
 function link(over) {
   const s = { ...state(), ...lastRank, ...over };
@@ -59,6 +71,27 @@ function go(over) {
   location.hash = link(over);
 }
 
+function movesLink(over) {
+  const s = { ...state(), ...lastMoves, ...over };
+  const q = new URLSearchParams({ c: s.campus });
+  if (s.from) q.set('f', s.from);
+  if (s.to) q.set('t', s.to);
+  if (s.move) q.set('m', s.move);
+  if (s.promo) q.set('y', s.promo);
+  if (s.page > 1) q.set('p', s.page);
+  return '#transfers&' + q;
+}
+
+function goMoves(over) {
+  location.hash = movesLink(over);
+}
+
+// switching view keeps the campus on screen; a view gets its own filters back only for that campus
+function keepCampus(last, reset) {
+  const campus = shownCampus || state().campus;
+  return last.campus === campus ? {} : { ...reset, campus, page: 1 };
+}
+
 async function api(path) {
   const r = await fetch(path, { credentials: 'same-origin', cache: 'no-cache' });
   const j = await r.json().catch(() => ({}));
@@ -71,8 +104,10 @@ function msg(text) {
   $('msg').textContent = text;
 }
 
+const clock = (iso) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
 function showLogin(text) {
-  for (const v of ['view-rank', 'view-calc', 'nav']) $(v).hidden = true;
+  for (const v of ['view-rank', 'view-transfers', 'view-calc', 'nav']) $(v).hidden = true;
   $('view-login').hidden = false;
   $('login-msg').textContent = text || '';
 }
@@ -116,22 +151,37 @@ async function init() {
   };
   $('nav-rank').onclick = (e) => {
     e.preventDefault();
-    go({});
+    go(keepCampus(lastRank, { status: 'active', promo: '', coal: 0 }));
+  };
+  $('nav-transfers').onclick = (e) => {
+    e.preventDefault();
+    goMoves(keepCampus(lastMoves, { from: '', to: '', move: '', promo: '' }));
   };
   initCalc();
   addEventListener('hashchange', route);
 
   const list = await api('/api/campuses');
-  const sel = $('campus');
-  let group = null;
-  for (const c of list) {
-    if (!group || group.label !== c.country) sel.append((group = h('optgroup', { label: c.country })));
-    group.append(new Option(c.name, c.id));
+  campusById = new Map(list.map((c) => [c.id, c]));
+  for (const sel of [$('campus'), $('tr-campus')]) {
+    let group = null;
+    for (const c of list) {
+      if (!group || group.label !== c.country) sel.append((group = h('optgroup', { label: c.country })));
+      group.append(new Option(c.name, c.id));
+    }
   }
-  sel.onchange = () => go({ campus: sel.value, promo: '', coal: 0, status: 'active', page: 1 });
+  $('campus').onchange = (e) => go({ campus: e.target.value, promo: '', coal: 0, status: 'active', page: 1 });
   $('promo').onchange = (e) => go({ promo: e.target.value, page: 1 });
   $('coal').onchange = (e) => go({ coal: Number(e.target.value) || 0, page: 1 });
   $('status').onchange = (e) => go({ status: e.target.value, page: 1 });
+
+  $('tr-campus').onchange = (e) => goMoves({ campus: e.target.value, from: '', to: '', move: '', promo: '', page: 1 });
+  $('tr-from').onchange = (e) => goMoves({ from: e.target.value, page: 1 });
+  $('tr-to').onchange = (e) => goMoves({ to: e.target.value, page: 1 });
+  $('tr-status').onchange = (e) => goMoves({ move: e.target.value, page: 1 });
+  $('tr-promo').onchange = (e) => goMoves({ promo: e.target.value, page: 1 });
+  // the search narrows the list as you type
+  $('tr-find').onsubmit = (e) => e.preventDefault();
+  $('tr-q').oninput = () => (state().page > 1 ? goMoves({ page: 1 }) : renderMoves());
   route();
 }
 
@@ -155,11 +205,14 @@ async function loadCampus(id) {
 
 async function route() {
   const s = state();
-  $('view-rank').hidden = s.calc;
-  $('view-calc').hidden = !s.calc;
-  $('nav-rank').classList.toggle('on', !s.calc);
-  $('nav-calc').classList.toggle('on', s.calc);
+  const view = s.calc ? 'calc' : s.transfers ? 'transfers' : 'rank';
+  for (const v of ['rank', 'transfers', 'calc']) {
+    $('view-' + v).hidden = v !== view;
+    $('nav-' + v).classList.toggle('on', v === view);
+  }
   if (s.calc) return showCalc(s);
+  shownCampus = s.campus;
+  if (s.transfers) return showTransfers(s);
 
   lastRank = { campus: s.campus, status: s.status, promo: s.promo, coal: s.coal, page: s.page };
   $('campus').value = s.campus;
@@ -184,7 +237,7 @@ async function route() {
       const i = rows(s).findIndex((r) => r.u.login === me.login);
       if (i >= PER_PAGE && s.page === 1) return go({ page: Math.floor(i / PER_PAGE) + 1 });
     }
-    $('fetched').textContent = 'updated ' + new Date(data.fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    $('fetched').textContent = 'updated ' + clock(data.fetchedAt);
   }
   render();
 }
@@ -235,10 +288,9 @@ function render() {
   const tbl = $('tbl');
   tbl.classList.toggle('one-promo', !!s.promo);
   tbl.classList.toggle('one-coal', !!s.coal);
-  tbl.tBodies[0].replaceChildren(...all.slice((page - 1) * PER_PAGE, page * PER_PAGE).map(row));
-  tbl.hidden = !all.length;
+  fillTable(tbl, RANK_COLS, all.slice((page - 1) * PER_PAGE, page * PER_PAGE), (r) => rowClass(r.u));
   msg(all.length ? `${all.length} student${all.length > 1 ? 's' : ''}` : 'Nobody here with these filters.');
-  $('pages').replaceChildren(...(pages > 1 ? pager(page, pages) : []));
+  $('pages').replaceChildren(...(pages > 1 ? pager(page, pages, (n) => link({ page: n })) : []));
   if (scrollPending) {
     scrollPending = false;
     document.querySelector('tr.hl')?.scrollIntoView({ block: 'center' });
@@ -268,49 +320,67 @@ function avatar(u, size = 28) {
   return img;
 }
 
-function row({ u, rank }) {
-  const c = data.coal.get(u.coal);
-  const cls = [u.login === highlight && 'hl', me && u.login === me.login && 'mine', u.bh && 'gone'].filter(Boolean).join(' ');
+// --- tables -------------------------------------------------------------------
+// every list is the same table: a column is its header, its class and how to draw
+// one cell, so the ranking and the transfers share the markup, styles and pager
+
+function fillTable(tbl, cols, list, classOf) {
+  if (!tbl.tHead.rows.length) tbl.tHead.append(h('tr', null, ...cols.map((c) => h('th', { class: c.cls }, c.head))));
+  tbl.tBodies[0].replaceChildren(...list.map((r) => h('tr', { class: classOf(r) || null }, ...cols.map((c) => h('td', { class: c.cls }, c.cell(r))))));
+  tbl.hidden = !list.length;
+}
+
+function rowClass(u) {
+  return [u.login === highlight && 'hl', me && u.login === me.login && 'mine', u.bh && 'gone'].filter(Boolean).join(' ');
+}
+
+function who(u) {
   return h(
-    'tr',
-    { class: cls || null },
-    h('td', { class: 'num' }, String(rank)),
+    'div',
+    { class: 'who' },
+    avatar(u),
     h(
-      'td',
+      'span',
       null,
-      h(
-        'div',
-        { class: 'who' },
-        avatar(u),
-        h(
-          'span',
-          null,
-          h('a', { href: 'https://profile.intra.42.fr/users/' + encodeURIComponent(u.login), target: '_blank', rel: 'noopener noreferrer' }, u.login),
-          u.bh && h('span', { class: 'tag' }, 'blackholed ' + u.bh),
-          h('div', { class: 'name' }, u.name)
-        )
-      )
-    ),
-    h('td', { class: 'hide-sm col-coal' }, c ? h('span', null, h('span', { class: 'dot', color: c.color }), c.name) : ''),
-    h('td', { class: 'col-promo' }, u.promo),
-    h('td', { class: 'num lvl' }, h('a', { href: '#calc&l=' + u.level, title: 'open in the calculator' }, u.level.toFixed(2)))
+      h('a', { href: 'https://profile.intra.42.fr/users/' + encodeURIComponent(u.login), target: '_blank', rel: 'noopener noreferrer' }, u.login),
+      u.bh && h('span', { class: 'tag' }, 'blackholed ' + u.bh),
+      h('div', { class: 'name' }, u.name)
+    )
   );
 }
 
-function pager(page, pages) {
+function levelLink(u) {
+  return h('a', { href: '#calc&l=' + u.level, title: 'open in the calculator' }, u.level.toFixed(2));
+}
+
+// `to(n)` is the link to page n of whichever list this is
+function pager(page, pages, to) {
   const nums = new Set([1, pages]);
   for (let i = page - 2; i <= page + 2; i++) if (i > 1 && i < pages) nums.add(i);
   const out = [];
   let prev = 0;
-  if (page > 1) out.push(h('a', { href: link({ page: page - 1 }) }, '‹'));
+  if (page > 1) out.push(h('a', { href: to(page - 1) }, '‹'));
   for (const n of [...nums].sort((a, b) => a - b)) {
     if (n - prev > 1) out.push(' … ');
-    out.push(n === page ? h('b', null, String(n)) : h('a', { href: link({ page: n }) }, String(n)));
+    out.push(n === page ? h('b', null, String(n)) : h('a', { href: to(n) }, String(n)));
     prev = n;
   }
-  if (page < pages) out.push(h('a', { href: link({ page: page + 1 }) }, '›'));
+  if (page < pages) out.push(h('a', { href: to(page + 1) }, '›'));
   return out;
 }
+
+function coalition(u) {
+  const c = data.coal.get(u.coal);
+  return c ? h('span', null, h('span', { class: 'dot', color: c.color }), c.name) : '';
+}
+
+const RANK_COLS = [
+  { head: '#', cls: 'num', cell: (r) => String(r.rank) },
+  { head: 'Student', cell: (r) => who(r.u) },
+  { head: 'Coalition', cls: 'hide-sm col-coal', cell: (r) => coalition(r.u) },
+  { head: 'Promo', cls: 'col-promo', cell: (r) => r.u.promo },
+  { head: 'Level', cls: 'num lvl', cell: (r) => levelLink(r.u) },
+];
 
 function find(q) {
   if (!data || !q) return;
@@ -332,6 +402,163 @@ function find(q) {
   if (to === location.hash) render();
   else location.hash = to;
 }
+
+// --- transfers ----------------------------------------------------------------
+
+// campus countries as the api spells them -> ISO code, which is all a flag emoji needs
+const COUNTRY_CODES = {
+  Angola: 'AO', Armenia: 'AM', Australia: 'AU', Austria: 'AT', Belgium: 'BE', Brazil: 'BR', Canada: 'CA',
+  'Czech Republic': 'CZ', Finland: 'FI', France: 'FR', Germany: 'DE', Italy: 'IT', Japan: 'JP', Jordan: 'JO',
+  'Korea, Republic of': 'KR', Lebanon: 'LB', Luxembourg: 'LU', Madagascar: 'MG', Malaysia: 'MY', Morocco: 'MA',
+  Netherlands: 'NL', 'Palestine, State of': 'PS', Poland: 'PL', Portugal: 'PT', Singapore: 'SG', Spain: 'ES',
+  Switzerland: 'CH', Thailand: 'TH', Turkey: 'TR', 'United Arab Emirates': 'AE', 'United Kingdom': 'GB',
+};
+const MOVES = { moving: ['In progress', '#d69e2e'], arrived: ['Arrived', '#38a169'] };
+
+let moves = null;
+let loadedMoves = null;
+const movesData = new Map(); // campus id -> { data, at }
+
+// two regional-indicator letters make a flag
+function flag(country) {
+  const cc = COUNTRY_CODES[country];
+  return cc ? String.fromCodePoint(...[...cc].map((ch) => 0x1f1a5 + ch.charCodeAt(0))) : '';
+}
+
+// "Korea, Republic of" -> "Korea"
+const countryName = (country) => (country || '?').split(',')[0];
+
+// an origin / destination filter is a campus id ("1") or a whole country ("FR")
+function at(id, f) {
+  if (!f) return true;
+  if (/^\d+$/.test(f)) return id === Number(f);
+  return COUNTRY_CODES[campusById.get(id)?.country] === f;
+}
+
+async function loadMoves(id) {
+  const hit = movesData.get(id);
+  if (hit && Date.now() - hit.at < FRESH_MS) return hit.data;
+  const d = await api('/api/transfers/' + id);
+  d.promos = [...new Set(d.students.map((u) => u.promo).filter(Boolean))].sort().reverse();
+  movesData.set(id, { data: d, at: Date.now() });
+  return d;
+}
+
+async function showTransfers(s) {
+  lastMoves = { campus: s.campus, from: s.from, to: s.to, move: s.move, promo: s.promo, page: s.page };
+  $('tr-campus').value = s.campus;
+  if (s.campus !== loadedMoves || !moves) {
+    loadedMoves = s.campus;
+    moves = null;
+    if (!movesData.has(s.campus)) {
+      $('tr-tbl').hidden = true;
+      $('tr-pages').replaceChildren();
+      $('tr-fetched').textContent = '';
+      $('tr-msg').textContent = 'Loading…';
+    }
+    try {
+      const d = await loadMoves(s.campus);
+      if (loadedMoves !== s.campus) return;
+      moves = d;
+    } catch (e) {
+      $('tr-msg').textContent = 'Something went wrong: ' + e.message;
+      return;
+    }
+    $('tr-fetched').textContent = 'updated ' + clock(moves.fetchedAt);
+  }
+  renderMoves();
+}
+
+// filtered list; `skip` leaves one filter out, to count what each of its choices would give
+function moveRows(s, skip) {
+  const q = $('tr-q').value.trim().toLowerCase();
+  return moves.students.filter(
+    (u) =>
+      (skip === 'from' || at(u.from, s.from)) &&
+      (skip === 'to' || at(u.to, s.to)) &&
+      (skip === 'move' || !s.move || u.status === s.move) &&
+      (!s.promo || u.promo === s.promo) &&
+      (!q || u.login.includes(q) || u.name.toLowerCase().includes(q))
+  );
+}
+
+// every campus seen on that side of a move, by country, plus the whole country when it has several
+function placeSelect(sel, placeholder, key, rows, value) {
+  const seen = new Set(moves.students.map((u) => u[key]));
+  const count = (f) => rows.filter((u) => at(u[key], f)).length;
+  const groups = new Map();
+  for (const c of campusById.values()) {
+    if (!seen.has(c.id)) continue;
+    if (!groups.has(c.country)) groups.set(c.country, []);
+    groups.get(c.country).push(c);
+  }
+  const options = [];
+  for (const [country, list] of groups) {
+    const group = h('optgroup', { label: countryName(country) });
+    const cc = COUNTRY_CODES[country];
+    if (cc && list.length > 1) group.append(new Option(`${flag(country)} All of ${countryName(country)} (${count(cc)})`, cc));
+    for (const c of list) group.append(new Option(`${flag(country)} ${c.name} (${count(String(c.id))})`, c.id));
+    options.push(group);
+  }
+  sel.replaceChildren(new Option(placeholder, ''), ...options);
+  sel.value = value;
+}
+
+function renderMoves() {
+  if (!moves) return;
+  const s = state();
+  placeSelect($('tr-from'), 'Origin', 'from', moveRows(s, 'from'), s.from);
+  placeSelect($('tr-to'), 'Destination', 'to', moveRows(s, 'to'), s.to);
+  const byStatus = moveRows(s, 'move');
+  fillSelect($('tr-status'), 'Status', Object.entries(MOVES).map(([k, [label]]) => [k, `${label} (${byStatus.filter((u) => u.status === k).length})`]), s.move);
+  fillSelect($('tr-promo'), 'Promo', moves.promos.map((y) => [y, y]), s.promo);
+  for (const id of ['tr-from', 'tr-to', 'tr-status', 'tr-promo']) $(id).classList.toggle('set', !!$(id).value);
+
+  const all = moveRows(s);
+  const pages = Math.max(1, Math.ceil(all.length / PER_PAGE));
+  const page = Math.min(s.page, pages);
+  const tbl = $('tr-tbl');
+  tbl.classList.toggle('one-promo', !!s.promo);
+  fillTable(tbl, MOVE_COLS, all.slice((page - 1) * PER_PAGE, page * PER_PAGE), rowClass);
+  $('tr-msg').textContent = all.length
+    ? `${all.length} student${all.length > 1 ? 's' : ''}`
+    : moves.students.length
+      ? 'Nobody here with these filters.'
+      : 'Nobody is moving to or from this campus.';
+  $('tr-pages').replaceChildren(...(pages > 1 ? pager(page, pages, (n) => movesLink({ page: n })) : []));
+}
+
+function place(id) {
+  const c = campusById.get(id);
+  return h('span', { class: 'place' }, h('span', { class: 'flag', ariaHidden: 'true' }, flag(c?.country)), c ? c.name : '?');
+}
+
+// "🇲🇦 Khouribga → 🇫🇷 Paris", with the countries underneath like a student's full name
+function trip(u) {
+  const a = countryName(campusById.get(u.from)?.country);
+  const b = countryName(campusById.get(u.to)?.country);
+  return h(
+    'div',
+    { class: 'trip' },
+    h('div', null, place(u.from), h('span', { class: 'arrow' }, '→'), place(u.to)),
+    h('div', { class: 'name' }, a === b ? a : `${a} → ${b}`)
+  );
+}
+
+const month = (day) => new Date(day).toLocaleDateString('en', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+
+function moveStatus(u) {
+  const [label, color] = MOVES[u.status];
+  return h('span', null, h('span', { class: 'dot', color }), label, ' ', h('span', { class: 'when hide-sm' }, (u.status === 'moving' ? 'since ' : '') + month(u.at)));
+}
+
+const MOVE_COLS = [
+  { head: 'Student', cell: who },
+  { head: 'Transfer', cell: trip },
+  { head: 'Promo', cls: 'hide-sm col-promo', cell: (u) => u.promo },
+  { head: 'Level', cls: 'num lvl hide-sm', cell: levelLink },
+  { head: 'Status', cell: moveStatus },
+];
 
 // --- level calculator -------------------------------------------------------
 

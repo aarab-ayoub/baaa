@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 const crypto = require('crypto');
+const { AsyncLocalStorage } = require('async_hooks');
 
 // --- config ---------------------------------------------------------------
 for (const line of fs.readFileSync(path.join(__dirname, '.env'), 'utf8').split('\n')) {
@@ -57,33 +58,47 @@ async function fetchToken() {
 }
 
 // --- rate-limited GET (app limit is 2 req/s) -----------------------------
+// work nobody is waiting on (warmups, refreshing old data) runs inside later() and
+// only gets a turn when no call for someone looking at the page is queued
+const background = new AsyncLocalStorage();
+const later = (fn) => background.run(true, fn);
+
 let last = 0;
 const queue = [];
+const idle = [];
 let busy = false;
 
 function throttle() {
   return new Promise((resolve) => {
-    queue.push(resolve);
+    (background.getStore() ? idle : queue).push(resolve);
     if (!busy) drain();
   });
 }
 
 async function drain() {
   busy = true;
-  while (queue.length) {
+  while (queue.length || idle.length) {
     const wait = last + 550 - Date.now();
     if (wait > 0) await new Promise((r) => setTimeout(r, wait));
     last = Date.now();
-    queue.shift()();
+    (queue.shift() || idle.shift())();
   }
   busy = false;
 }
 
 async function get(url, tries = 0) {
   await throttle();
-  const res = await fetch(API + url, {
-    headers: { Authorization: `Bearer ${await getToken()}` },
-  });
+  let res;
+  try {
+    res = await fetch(API + url, {
+      headers: { Authorization: `Bearer ${await getToken()}` },
+    });
+  } catch (e) {
+    // a dropped connection now and then shouldn't sink a job of a hundred calls
+    if (tries >= 3) throw e;
+    await new Promise((r) => setTimeout(r, 1000));
+    return get(url, tries + 1);
+  }
   if (res.status === 401 && tries < 1) {
     await getToken(true);
     return get(url, tries + 1);
@@ -154,7 +169,7 @@ function refresh(key, fn) {
 async function cached(key, fn, maxAge = FRESH_MS) {
   const hit = cache.get(key);
   if (!hit) return refresh(key, fn);
-  if (Date.now() - hit.at > maxAge) refresh(key, fn).catch((e) => console.error(e.message));
+  if (Date.now() - hit.at > maxAge) later(() => refresh(key, fn)).catch((e) => console.error(e.message));
   return hit;
 }
 
@@ -282,6 +297,26 @@ function campuses() {
   );
 }
 
+const isStudent = (cu) => cu.user && cu.user.kind === 'student' && !cu.user['staff?'];
+
+// one 42cursus row -> what the page shows about that student
+function student(cu) {
+  const u = cu.user;
+  // avatar is shown at 28px, so the smallest version is plenty
+  const img = u.image?.versions?.micro || u.image?.versions?.small || u.image?.link;
+  // blackholed_at is often left in the past for students who got extra time,
+  // so "absorbed" = the cursus was actually closed (end_at set and passed).
+  const ended = cu.end_at && new Date(cu.end_at).getTime() <= Date.now() && !u['alumni?'];
+  return {
+    login: u.login,
+    name: u.usual_full_name || u.displayname || '',
+    img: PHOTO_OVERRIDES[u.login] || localImage(img),
+    level: cu.level,
+    promo: u.pool_year || '',
+    bh: ended ? cu.end_at.slice(0, 10) : null,
+  };
+}
+
 async function ranking(campusId) {
   return cached(`rank:${campusId}`, async () => {
     const [cursusUsers, blocs] = await Promise.all([
@@ -302,30 +337,93 @@ async function ranking(campusId) {
       for (const u of lists[i]) member.set(u.user_id, c.id);
     });
 
-    // blackholed_at is often left in the past for students who got extra time,
-    // so "absorbed" = the cursus was actually closed (end_at set and passed).
-    const now = Date.now();
     const students = cursusUsers
-      .filter((cu) => cu.user && cu.user.kind === 'student' && !cu.user['staff?'])
-      .map((cu) => {
-        const u = cu.user;
-        // avatar is shown at 28px, so the smallest version is plenty
-        const img = u.image?.versions?.micro || u.image?.versions?.small || u.image?.link;
-        const ended = cu.end_at && new Date(cu.end_at).getTime() <= now && !u['alumni?'];
-        return {
-          login: u.login,
-          name: u.usual_full_name || u.displayname || '',
-          img: PHOTO_OVERRIDES[u.login] || localImage(img),
-          level: cu.level,
-          promo: u.pool_year || '',
-          coal: member.get(u.id) || null,
-          bh: ended ? cu.end_at.slice(0, 10) : null,
-        };
-      })
+      .filter(isStudent)
+      .map((cu) => ({ ...student(cu), coal: member.get(cu.user.id) || null }))
       .sort((a, b) => b.level - a.level || a.login.localeCompare(b.login));
 
     return { fetchedAt: new Date().toISOString(), coalitions, students };
   });
+}
+
+// --- transfers ------------------------------------------------------------------
+// the api has no transfer object: changing campus adds a campus_users row for the new
+// campus, and that row becomes the primary one once the student is there. rows added
+// before the cursus even started are piscine leftovers (rabat's first promo got a
+// benguerir or khouribga row that way), so only a campus joined after the start counts.
+// only people with a second campus can have moved, and the whole network has a few
+// thousand of them, so one list covers every campus: ~100 calls to build, done in the
+// background and kept on disk, and a campus's transfers are a filter over it (instant)
+const TRANSFERS_MS = 60 * 60 * 1000; // nobody changes campus by the minute
+const AFTER_START_MS = 30 * 24 * 60 * 60 * 1000;
+// the api takes long id lists, but every page after the first repeats the whole url in
+// its Link header (up to 4 times) and node's fetch refuses headers over 16KB: 500 ids
+// break that, 200 stay far below. most ids here are staff who come back with nothing,
+// so 200 at a time still needs far fewer calls than 100 would
+const IDS_PER_CALL = 200;
+
+const chunks = (list, n = IDS_PER_CALL) => Array.from({ length: Math.ceil(list.length / n) }, (_, i) => list.slice(i * n, (i + 1) * n));
+
+// the primary campus_users row of each of these people
+function primaryRows(ids) {
+  return Promise.all(chunks(ids).map((c) => getAll(`/v2/campus_users?filter[user_id]=${c.join(',')}&filter[is_primary]=true`))).then((r) => r.flat());
+}
+
+// a student's latest move from their campus_users rows, or null if they never moved
+function lastMove(rows, beginAt, known) {
+  const list = rows.filter((r) => known.has(r.campus_id)).sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const to = list.pop();
+  if (!list.length || !(Date.parse(to.created_at) > Date.parse(beginAt) + AFTER_START_MS)) return null;
+  // on the way: they still belong to their primary campus. arrived: they come from the
+  // campus that stopped being primary when the new one took over, the one touched last
+  const from = to.is_primary ? list.reduce((a, b) => (b.updated_at > a.updated_at ? b : a)) : list.find((r) => r.is_primary);
+  if (!from || from.campus_id === to.campus_id) return null;
+  return to.is_primary
+    ? { from: from.campus_id, to: to.campus_id, status: 'arrived', at: to.updated_at.slice(0, 10) }
+    : { from: from.campus_id, to: to.campus_id, status: 'moving', at: to.created_at.slice(0, 10) };
+}
+
+// every move in the network, newest first
+function allMoves() {
+  return cached(
+    'transfers',
+    async () => {
+      const known = new Set((await campuses()).value.map((c) => c.id));
+      const rows = new Map(); // user id -> their campus_users rows
+      for (const r of await getAll('/v2/campus_users?filter[is_primary]=false')) {
+        if (!rows.has(r.user_id)) rows.set(r.user_id, []);
+        rows.get(r.user_id).push(r);
+      }
+      // most second campuses belong to staff, who have no 42cursus row: skip them. these
+      // calls take seconds each on 42's side, so they all go out at once (still 2/s)
+      const cus = (await Promise.all(chunks([...rows.keys()]).map((ids) => getAll(`/v2/cursus/${CURSUS}/cursus_users?filter[user_id]=${ids.join(',')}`))))
+        .flat()
+        .filter(isStudent);
+      for (const r of await primaryRows(cus.map((cu) => cu.user.id))) rows.get(r.user_id).push(r);
+      const students = [];
+      for (const cu of cus) {
+        const move = lastMove(rows.get(cu.user.id), cu.begin_at, known);
+        if (move) students.push({ ...student(cu), ...move });
+      }
+      students.sort((a, b) => b.at.localeCompare(a.at) || b.level - a.level);
+      return { fetchedAt: new Date().toISOString(), students };
+    },
+    TRANSFERS_MS
+  );
+}
+
+// one campus's share of that list, packed once per version of it
+const campusMoves = new Map(); // campus id -> { of, entry }
+
+async function transfers(campusId) {
+  const all = await allMoves();
+  const hit = campusMoves.get(campusId);
+  if (hit?.of === all) return hit.entry;
+  const students = all.value.students.filter((s) => s.from === campusId || s.to === campusId);
+  const value = { fetchedAt: all.value.fetchedAt, students };
+  const entry = pack(Buffer.from(JSON.stringify(value)), value);
+  campusMoves.set(campusId, { of: all, entry });
+  return entry;
 }
 
 // --- http -----------------------------------------------------------------
@@ -630,12 +728,14 @@ const server = http.createServer(async (req, res) => {
         return send(req, res, await campuses(), 'application/json', 'no-cache');
       }
 
-      const m = url.pathname.match(/^\/api\/ranking\/(\d{1,5})$/);
+      const m = url.pathname.match(/^\/api\/(ranking|transfers)\/(\d{1,5})$/);
       if (m) {
-        const id = Number(m[1]);
+        const id = Number(m[2]);
         // only real campuses, so nobody can make us spam the API with junk ids
         const list = (await campuses()).value;
         if (!list.some((c) => c.id === id)) return fail(res, 404, 'unknown campus');
+        // every campus's transfers come out of one list, so a new campus costs no calls
+        if (m[1] === 'transfers') return send(req, res, await transfers(id), 'application/json', 'no-cache');
         if (!cache.has(`rank:${id}`) && !pending.has(`rank:${id}`) && !allowColdLoad()) {
           return fail(res, 429, 'too many new campuses this hour, try again later');
         }
@@ -683,6 +783,10 @@ server.maxRequestsPerSocket = 1000;
 
 server.listen(PORT, HOST, () => {
   console.log(`http://${HOST}:${PORT}`);
-  ranking(DEFAULT_CAMPUS).catch((e) => console.error('warmup:', e.message));
-  projects().catch((e) => console.error('warmup:', e.message));
+  // nobody is waiting on these yet, so they only use the api when it's free
+  later(() => {
+    ranking(DEFAULT_CAMPUS).catch((e) => console.error('warmup:', e.message));
+    allMoves().catch((e) => console.error('warmup:', e.message));
+    projects().catch((e) => console.error('warmup:', e.message));
+  });
 });

@@ -86,13 +86,25 @@ footer { text-align: center; font-size: 12px; padding-top: 24px; }
 /* top bar */
 .bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .bar select { flex: 0 1 auto; color: #8a8a8a; }
-.bar select.set, .bar #campus, .bar #status { color: #1a1a1a; }
+.bar select.set, .bar #campus, .bar #status, .bar #tr-campus { color: #1a1a1a; }
 .bar select option { color: #1a1a1a; }
 .bar form { flex: 1 1 160px; margin: 0; }
 
 tr.mine td { background: #f2f7ff; }
 tr.mine.hl td, tr.hl td { background: #fff8d6; }
 table.one-promo .col-promo, table.one-coal .col-coal { display: none; }
+
+/* transfers */
+.scroll { overflow-x: auto; }
+.place { white-space: nowrap; }
+.flag { margin-right: 5px; }
+.trip .arrow { color: #b0b0b0; margin: 0 7px; }
+.trip .name { color: #8a8a8a; font-size: 12px; }
+.when { color: #8a8a8a; font-size: 12px; margin-left: 4px; }
+@media (max-width: 560px) {
+  .trip .name { display: none; }
+  .trip > div { white-space: normal; }
+}
 
 /* calculator */
 .hero { text-align: center; padding: 28px 0 8px; }
