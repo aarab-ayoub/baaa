@@ -11,10 +11,10 @@ import { go } from '@/lib/client/nav';
 import { movesHref, rankHref } from '@/lib/url-state';
 import { cn } from '@/lib/utils';
 
-// the coral pill on the right of the bar
+// the gold pill on the right of the bar
 const CTA =
-  'inline-flex h-[30px] items-center rounded-full border border-white/12 bg-coral px-4 py-0 text-[14px] font-medium tracking-[0.35px] whitespace-nowrap text-white ' +
-  'shadow-[inset_0_1px_2px_rgba(255,255,255,.25),0_3px_3px_-1.5px_rgba(16,24,40,.06),0_1px_1px_rgba(16,24,40,.08)] transition-colors hover:bg-coral/90 hover:no-underline';
+  'inline-flex h-[30px] items-center rounded-full border border-ink/10 bg-gold px-4 py-0 text-[14px] font-medium tracking-[0.35px] whitespace-nowrap text-ink ' +
+  'shadow-[inset_0_1px_2px_rgba(255,255,255,.35),0_3px_3px_-1.5px_rgba(16,24,40,.06),0_1px_1px_rgba(16,24,40,.08)] transition-[filter] hover:brightness-95 hover:no-underline';
 const ITEM = 'block w-full rounded-[8px] border-0 bg-transparent px-3 py-2 text-left text-[14px] text-[#1a1a1a] hover:bg-[#f3f3f3]';
 
 function Tab({ on, href, onClick, children }: { on: boolean; href: string; onClick?: (e: React.MouseEvent) => void; children: ReactNode }) {

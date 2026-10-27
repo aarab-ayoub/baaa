@@ -1,12 +1,12 @@
 import { cn } from '@/lib/utils';
 
-// the mark: a podium, 1st place in coral. same bars as app/icon.svg (32x32 grid),
+// the mark: a podium, 1st place in gold. same bars as app/icon.svg (32x32 grid),
 // framed tighter for the header
 export function LogoMark({ className }: { className?: string }) {
   return (
     <svg viewBox="4 5 24 22" aria-hidden="true" className={cn('size-6 flex-none', className)}>
       <rect x="5" y="12" width="6" height="14" rx="1.5" className="fill-ink" />
-      <rect x="13" y="6" width="6" height="20" rx="1.5" className="fill-coral" />
+      <rect x="13" y="6" width="6" height="20" rx="1.5" className="fill-gold" />
       <rect x="21" y="17" width="6" height="9" rx="1.5" className="fill-ink" />
     </svg>
   );

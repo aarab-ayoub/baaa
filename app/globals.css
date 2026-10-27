@@ -7,11 +7,11 @@
 /* phones: the same breakpoint the page always had */
 @custom-variant phone (@media (max-width: 560px));
 
-/* the two brand colors, from Sanzo Wada's "A Dictionary of Color Combinations" (1933):
-   coral is "Eugenia Red" (brainfast's lab(54.94 52.07 26.67) is the same red), ink is
-   "Deep Slate Green", the darkest color Wada paired it with (combination 325) */
+/* the two brand colors, a pair from Sanzo Wada's "A Dictionary of Color Combinations"
+   (1933, combination 325): ink is "Deep Slate Green", gold is "Yellow Ocher", first
+   place on the podium. gold carries ink text (7.4:1), never white */
 @theme {
-  --color-coral: lab(54.9393 52.0728 26.6683);
+  --color-gold: #e2b540;
   --color-ink: #112f2c;
 }
 

@@ -16,6 +16,11 @@ const SECURITY_HEADERS = {
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  experimental: {
+    // the build cache once kept an old @theme and dropped new color classes; a full
+    // build of this app takes ~2s, so it isn't worth it
+    turbopackFileSystemCacheForBuild: false,
+  },
   turbopack: {
     rules: {
       '*.css': { loaders: ['@tailwindcss/turbopack'], as: '*.css' },
