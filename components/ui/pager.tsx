@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { onGo } from '@/lib/client/nav';
 import { cn } from '@/lib/utils';
 
-const ITEM = 'inline-block min-w-[26px] rounded-[4px] px-[4px] py-[3px]';
+const ITEM = 'inline-block min-w-[28px] rounded-[6px] px-[5px] py-[4px]';
 
 // ‹ 1 … 4 5 [6] 7 8 … 15 ›   `href(n)` is the link to page n of whichever list this is
 export function Pager({ page, pages, href }: { page: number; pages: number; href: (n: number) => string }) {
@@ -26,5 +26,5 @@ export function Pager({ page, pages, href }: { page: number; pages: number; href
     }
     if (page < pages) items.push(to(page + 1, '›'));
   }
-  return <div className="pt-[14px] text-center text-[13px]">{items}</div>;
+  return <div className="pt-[16px] text-center text-[14px]">{items}</div>;
 }

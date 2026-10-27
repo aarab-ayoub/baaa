@@ -5,7 +5,8 @@ export type ChoiceGroup = { label: string; choices: Choice[] };
 
 // a native select from the filter bar. its empty choice is just the field name, and
 // picking it clears the filter: grey while it shows that, dark once something is picked
-// (`strong` ones, like the campus, are always dark)
+// (`strong` ones, like the campus, are always dark). the arrow is ours, so it sits
+// inside the box the same way in every browser
 export function FilterSelect({
   label,
   placeholder,
@@ -29,19 +30,24 @@ export function FilterSelect({
     </option>
   );
   return (
-    <select
-      aria-label={label}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={cn('flex-[0_1_auto] text-[#8a8a8a] [&_option]:text-[#1a1a1a]', (strong || value) && 'text-[#1a1a1a]')}
-    >
-      {placeholder != null && <option value="">{placeholder}</option>}
-      {choices.map(option)}
-      {groups.map((g) => (
-        <optgroup key={g.label} label={g.label}>
-          {g.choices.map(option)}
-        </optgroup>
-      ))}
-    </select>
+    <span className="relative inline-flex flex-[0_1_auto]">
+      <select
+        aria-label={label}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={cn('cursor-pointer appearance-none pr-[34px] text-[#8a8a8a] [&_option]:text-[#1a1a1a]', (strong || value) && 'text-[#1a1a1a]')}
+      >
+        {placeholder != null && <option value="">{placeholder}</option>}
+        {choices.map(option)}
+        {groups.map((g) => (
+          <optgroup key={g.label} label={g.label}>
+            {g.choices.map(option)}
+          </optgroup>
+        ))}
+      </select>
+      <svg aria-hidden="true" viewBox="0 0 16 16" className="pointer-events-none absolute top-1/2 right-[12px] size-[14px] -translate-y-1/2 text-[#8a8a8a]">
+        <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
   );
 }

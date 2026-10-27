@@ -14,7 +14,7 @@ type ApiMe = {
   usual_full_name?: string;
   displayname?: string;
   pool_year?: string;
-  image?: { link?: string; versions?: { micro?: string } };
+  image?: { link?: string; versions?: { micro?: string; small?: string } };
   cursus_users?: { cursus_id: number; level: number }[];
   campus_users?: { campus_id: number; is_primary: boolean }[];
   campus?: { id: number }[];
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     const user: Me = {
       login: me.login,
       name: me.usual_full_name || me.displayname || '',
-      img: PHOTO_OVERRIDES[me.login] || localImage(me.image?.versions?.micro || me.image?.link),
+      img: PHOTO_OVERRIDES[me.login] || localImage(me.image?.versions?.small || me.image?.versions?.micro || me.image?.link),
       level: cu ? cu.level : null,
       promo: me.pool_year || '',
       campus: (me.campus_users || []).find((c) => c.is_primary)?.campus_id || me.campus?.[0]?.id || null,

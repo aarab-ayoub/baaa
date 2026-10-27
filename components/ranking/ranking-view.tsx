@@ -115,7 +115,7 @@ export function RankingView() {
   }
 
   const columns: Column<Row>[] = [
-    { head: '#', className: 'text-right tabular-nums', cellClassName: 'w-[36px] text-[#8a8a8a]', cell: (r) => String(r.rank) },
+    { head: '#', className: 'text-right tabular-nums', cellClassName: 'w-[40px] text-[#8a8a8a]', cell: (r) => String(r.rank) },
     { head: 'Student', cell: (r) => <StudentCell u={r.u} /> },
   ];
   if (!s.coal) {

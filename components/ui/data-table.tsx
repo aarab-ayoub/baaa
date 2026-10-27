@@ -16,7 +16,7 @@ export function DataTable<T>({ columns, rows, rowKey, tone }: { columns: Column<
       <thead>
         <tr>
           {columns.map((c) => (
-            <th key={c.head} className={cn('border-b border-[#e6e6e6] px-2 py-[6px] text-left text-[12px] font-medium text-[#8a8a8a]', c.className)}>
+            <th key={c.head} className={cn('border-b border-[#e6e6e6] px-3 py-2 text-left text-[13px] font-medium text-[#8a8a8a]', c.className)}>
               {c.head}
             </th>
           ))}
@@ -30,7 +30,7 @@ export function DataTable<T>({ columns, rows, rowKey, tone }: { columns: Column<
               {columns.map((c) => (
                 <td
                   key={c.head}
-                  className={cn('whitespace-nowrap border-b border-[#f0f0f0] px-2 py-[5px]', t.hl ? 'bg-[#fff8d6]' : t.mine && 'bg-ink/6', t.gone && 'text-[#9a9a9a]', c.className, c.cellClassName)}
+                  className={cn('whitespace-nowrap border-b border-[#f0f0f0] px-3 py-[9px] text-[15px]', t.hl ? 'bg-[#fff8d6]' : t.mine && 'bg-ink/6', t.gone && 'text-[#9a9a9a]', c.className, c.cellClassName)}
                 >
                   {c.cell(row)}
                 </td>

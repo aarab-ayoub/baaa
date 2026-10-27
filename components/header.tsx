@@ -17,9 +17,19 @@ const CTA =
   'shadow-[inset_0_1px_2px_rgba(255,255,255,.35),0_3px_3px_-1.5px_rgba(16,24,40,.06),0_1px_1px_rgba(16,24,40,.08)] transition-[filter] hover:brightness-95 hover:no-underline';
 const ITEM = 'block w-full rounded-[8px] border-0 bg-transparent px-3 py-2 text-left text-[14px] text-[#1a1a1a] hover:bg-[#f3f3f3]';
 
+// a tab; the one you're on sits in a light gold pill
 function Tab({ on, href, onClick, children }: { on: boolean; href: string; onClick?: (e: React.MouseEvent) => void; children: ReactNode }) {
   return (
-    <Link href={href} scroll={false} onClick={onClick} className={cn('text-[#737373] transition-colors hover:text-[#0a0a0a] hover:no-underline', on && 'text-ink')}>
+    <Link
+      href={href}
+      scroll={false}
+      onClick={onClick}
+      aria-current={on ? 'page' : undefined}
+      className={cn(
+        'rounded-full px-3 py-[6px] text-[#737373] transition-colors hover:bg-ink/5 hover:text-[#0a0a0a] hover:no-underline phone:px-2',
+        on && 'bg-gold/30 text-ink hover:bg-gold/30 hover:text-ink'
+      )}
+    >
       {children}
     </Link>
   );
@@ -122,14 +132,14 @@ export function Header({ nav }: { nav: boolean }) {
   };
 
   return (
-    <header className="sticky top-4 z-50 mt-4 mb-[14px]">
+    <header className="sticky top-4 z-50 mx-auto mt-4 mb-[18px] max-w-[1100px] px-4">
       <div className="flex h-[56px] items-center justify-between gap-4 rounded-[16px] border border-[#e5e5e5] bg-white/75 px-4 backdrop-blur-[16px] phone:px-3">
-        <div className="flex min-w-0 items-center gap-8 phone:gap-3">
+        <div className="flex min-w-0 items-center gap-6 phone:gap-2">
           <Link href="/" scroll={false} aria-label="42 rank" className="hover:no-underline">
             <Logo compact={nav} />
           </Link>
           {nav && (
-            <nav className="flex items-center gap-6 text-[14px] font-medium phone:gap-3 phone:text-[13px]">
+            <nav className="flex items-center gap-1 text-[14px] font-medium phone:gap-0 phone:text-[13px]">
               <Tab on={view === 'rank'} href="/" onClick={open(ranking)}>
                 Ranking
               </Tab>

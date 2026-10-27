@@ -5,7 +5,8 @@ export type Campus = { id: number; name: string; country: string };
 export type Student = {
   login: string;
   name: string;
-  img: string | null;
+  img: string | null; // 175px photo, for the 40px avatar
+  photo: string | null; // 350px photo, for the zoom on hover
   level: number;
   promo: string;
   bh: string | null; // the day the cursus closed, if it did

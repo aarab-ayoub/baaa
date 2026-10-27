@@ -48,7 +48,7 @@ export function AppShell({ me, required, children }: { me: Me | null; required: 
       {/* a campus's data is kept for 10 minutes like before, and asked for again after */}
       <SWRConfig value={{ fetcher, dedupingInterval: FRESH_MS, revalidateOnFocus: false, revalidateOnReconnect: false, shouldRetryOnError: false }}>
         <Header nav={!locked} />
-        {locked ? <LoginScreen text={text} /> : children}
+        <main className="mx-auto max-w-[900px] px-4 pb-[40px]">{locked ? <LoginScreen text={text} /> : children}</main>
       </SWRConfig>
     </AppContext>
   );

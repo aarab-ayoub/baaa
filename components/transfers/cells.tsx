@@ -30,7 +30,7 @@ export function TripCell({ from, to }: { from?: Campus; to?: Campus }) {
         <span className="mx-[7px] text-[#b0b0b0]">→</span>
         <Place c={to} />
       </div>
-      <div className="text-[12px] text-[#8a8a8a] phone:hidden">{a === b ? a : `${a} → ${b}`}</div>
+      <div className="text-[13px] text-[#8a8a8a] phone:hidden">{a === b ? a : `${a} → ${b}`}</div>
     </div>
   );
 }
@@ -42,7 +42,7 @@ export function MoveCell({ m }: { m: Move }) {
     <span>
       <Dot color={color} />
       {label}{' '}
-      <span className="ml-[4px] text-[12px] text-[#8a8a8a] phone:hidden">{(m.status === 'moving' ? 'since ' : '') + month(m.at)}</span>
+      <span className="ml-[4px] text-[13px] text-[#8a8a8a] phone:hidden">{(m.status === 'moving' ? 'since ' : '') + month(m.at)}</span>
     </span>
   );
 }
