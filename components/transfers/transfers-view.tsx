@@ -6,17 +6,21 @@ import useSWR from 'swr';
 import { useApp } from '@/components/app-shell';
 import { CampusSelect } from '@/components/campus-select';
 import { LevelLink } from '@/components/level-link';
+import { StudentCard } from '@/components/student-card';
 import { StudentCell } from '@/components/student-cell';
-import { MoveCell, MOVES, TripCell } from '@/components/transfers/cells';
+import { Destination, MoveCell, MoveDate, MOVES, TripCell } from '@/components/transfers/cells';
+import { CardGrid } from '@/components/ui/card-grid';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { FilterSelect, type ChoiceGroup } from '@/components/ui/filter-select';
 import { Pager } from '@/components/ui/pager';
 import { SearchBox } from '@/components/ui/search-box';
 import { StatusLine } from '@/components/ui/status-line';
+import { ViewToggle } from '@/components/ui/view-toggle';
 import { COUNTRY_CODES, countryName, flag } from '@/lib/countries';
 import { memory } from '@/lib/client/memory';
 import { go } from '@/lib/client/nav';
+import { useListView } from '@/lib/client/view';
 import type { Campus, Move, MoveStatus, Transfers } from '@/lib/types';
 import { movesHref, movesState, type MovesState } from '@/lib/url-state';
 import { clock, PER_PAGE } from '@/lib/utils';
@@ -31,6 +35,7 @@ export function TransfersView() {
   const { data: campuses } = useSWR<Campus[]>('/api/campuses');
   const { data, error } = useSWR<Transfers>(`/api/transfers/${s.campus}`);
   const [query, setQuery] = useState(memory.movesQuery);
+  const [view, setView] = useListView();
   const byId = useMemo(() => new Map((campuses ?? []).map((c) => [c.id, c])), [campuses]);
   const promos = useMemo(() => [...new Set((data?.students ?? []).map((u) => u.promo).filter(Boolean))].sort().reverse(), [data]);
 
@@ -85,8 +90,11 @@ export function TransfersView() {
   if (!s.promo) columns.push({ head: 'Promo', className: 'phone:hidden', cell: (u) => u.promo });
   columns.push(
     { head: 'Level', className: 'text-right tabular-nums phone:hidden', cellClassName: 'font-semibold', cell: (u) => <LevelLink level={u.level} /> },
-    { head: 'Status', cell: (u) => <MoveCell m={u} /> }
+    { head: 'Status', cell: (u) => <MoveCell m={u} /> },
+    { head: 'Date', className: 'phone:hidden', cell: (u) => <MoveDate m={u} /> }
   );
+  const tone = (u: Move) => ({ hl: u.login === highlight, mine: me?.login === u.login, gone: !!u.bh });
+  const shown = all.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   let text: string;
   if (!data) text = error ? 'Something went wrong: ' + error.message : 'Loading…';
@@ -120,17 +128,29 @@ export function TransfersView() {
           }}
         />
       </FilterBar>
-      <StatusLine text={text} updated={data ? 'updated ' + clock(data.fetchedAt) : ''} />
-      <div className="overflow-x-auto">
-        {data && (
-          <DataTable
-            columns={columns}
-            rows={all.slice((page - 1) * PER_PAGE, page * PER_PAGE)}
-            rowKey={(u) => u.login}
-            tone={(u) => ({ hl: u.login === highlight, mine: me?.login === u.login, gone: !!u.bh })}
-          />
-        )}
-      </div>
+      <StatusLine text={text} updated={data ? 'updated ' + clock(data.fetchedAt) : ''}>
+        <ViewToggle view={view} onChange={setView} />
+      </StatusLine>
+      {data && view === 'cards' && (
+        <CardGrid
+          rows={shown}
+          rowKey={(u) => u.login}
+          tone={tone}
+          card={(u) => (
+            <StudentCard u={u}>
+              <div className="mt-3 flex items-center justify-between gap-2 border-t border-[#f0f0f0] pt-3 text-[13px]">
+                <MoveCell m={u} />
+                <Destination to={byId.get(u.to)} />
+              </div>
+            </StudentCard>
+          )}
+        />
+      )}
+      {data && view === 'table' && (
+        <div className="overflow-x-auto">
+          <DataTable columns={columns} rows={shown} rowKey={(u) => u.login} tone={tone} />
+        </div>
+      )}
       <Pager page={page} pages={data ? pages : 1} href={(n) => movesHref({ ...s, page: n })} />
     </section>
   );

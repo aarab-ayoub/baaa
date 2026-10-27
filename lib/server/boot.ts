@@ -20,8 +20,13 @@ export function boot() {
   fs.chmodSync(CACHE_DIR, 0o700);
 
   // api data, photos and sessions from the last run: instant, no api calls, nobody logged out
-  const values = restoreCache() as { students?: { img: string | null }[] }[];
-  for (const v of values) for (const u of v?.students || []) rememberImage(u.img);
+  const values = restoreCache() as { students?: { img: string | null; photo?: string | null }[] }[];
+  for (const v of values) {
+    for (const u of v?.students || []) {
+      rememberImage(u.img);
+      rememberImage(u.photo);
+    }
+  }
   const sessions = restoreSessions();
   for (const { user } of sessions) rememberImage(user.img);
   console.log(`restored ${values.length} cached responses, ${sessions.length} sessions`);

@@ -35,14 +35,30 @@ export function TripCell({ from, to }: { from?: Campus; to?: Campus }) {
   );
 }
 
-// "● In progress since Oct 2026" / "● Arrived Oct 2026"
+// "● In progress" / "● Arrived"
 export function MoveCell({ m }: { m: Move }) {
   const [label, color] = MOVES[m.status];
   return (
-    <span>
+    <span className="whitespace-nowrap">
       <Dot color={color} />
-      {label}{' '}
-      <span className="ml-[4px] text-[13px] text-[#8a8a8a] phone:hidden">{(m.status === 'moving' ? 'since ' : '') + month(m.at)}</span>
+      {label}
+    </span>
+  );
+}
+
+// when it started (in progress) or when they got there (arrived): "Oct 2026"
+export function MoveDate({ m }: { m: Move }) {
+  return <span className="text-[#8a8a8a] tabular-nums">{month(m.at)}</span>;
+}
+
+// where they're going, as on the cards: "🇫🇷 France"
+export function Destination({ to }: { to?: Campus }) {
+  return (
+    <span className="truncate" title={to ? `${to.name}, ${to.country}` : undefined}>
+      <span aria-hidden="true" className="mr-[5px]">
+        {flag(to?.country)}
+      </span>
+      {countryName(to?.country)}
     </span>
   );
 }

@@ -6,7 +6,9 @@ import useSWR from 'swr';
 import { useApp } from '@/components/app-shell';
 import { CampusSelect } from '@/components/campus-select';
 import { LevelLink } from '@/components/level-link';
+import { StudentCard } from '@/components/student-card';
 import { StudentCell } from '@/components/student-cell';
+import { CardGrid } from '@/components/ui/card-grid';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { Dot } from '@/components/ui/dot';
 import { FilterBar } from '@/components/ui/filter-bar';
@@ -14,8 +16,10 @@ import { FilterSelect } from '@/components/ui/filter-select';
 import { Pager } from '@/components/ui/pager';
 import { SearchBox } from '@/components/ui/search-box';
 import { StatusLine } from '@/components/ui/status-line';
+import { ViewToggle } from '@/components/ui/view-toggle';
 import { memory } from '@/lib/client/memory';
 import { go } from '@/lib/client/nav';
+import { useListView } from '@/lib/client/view';
 import type { Campus, Ranking, RankedStudent } from '@/lib/types';
 import { rankHref, rankState, type RankState } from '@/lib/url-state';
 import { clock, PER_PAGE } from '@/lib/utils';
@@ -50,6 +54,7 @@ export function RankingView() {
   const { data: campuses } = useSWR<Campus[]>('/api/campuses');
   const { data: raw, error } = useSWR<Ranking>(`/api/ranking/${s.campus}`);
   const [query, setQuery] = useState(memory.rankQuery);
+  const [view, setView] = useListView();
   const [notice, setNotice] = useState<{ text: string; at: string } | null>(null);
   const [, redraw] = useReducer((n: number) => n + 1, 0);
 
@@ -94,7 +99,7 @@ export function RankingView() {
       if (i >= PER_PAGE) return void go(rankHref({ ...s, page: Math.floor(i / PER_PAGE) + 1 }));
     }
     memory.scrollPending = false;
-    document.querySelector('tr[data-hl]')?.scrollIntoView({ block: 'center' });
+    document.querySelector('[data-hl]')?.scrollIntoView({ block: 'center' });
   });
 
   function find(q: string) {
@@ -130,6 +135,8 @@ export function RankingView() {
   }
   if (!s.promo) columns.push({ head: 'Promo', cell: (r) => r.u.promo });
   columns.push({ head: 'Level', className: 'text-right tabular-nums', cellClassName: 'font-semibold', cell: (r) => <LevelLink level={r.u.level} /> });
+  const tone = (r: Row) => ({ hl: r.u.login === highlight, mine: me?.login === r.u.login, gone: !!r.u.bh });
+  const shown = all.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   let text: string;
   if (notice?.at === here) text = notice.text;
@@ -163,15 +170,11 @@ export function RankingView() {
           onSubmit={() => find(query.trim().toLowerCase())}
         />
       </FilterBar>
-      <StatusLine text={text} updated={data ? 'updated ' + clock(data.fetchedAt) : ''} />
-      {data && (
-        <DataTable
-          columns={columns}
-          rows={all.slice((page - 1) * PER_PAGE, page * PER_PAGE)}
-          rowKey={(r) => r.u.login}
-          tone={(r) => ({ hl: r.u.login === highlight, mine: me?.login === r.u.login, gone: !!r.u.bh })}
-        />
-      )}
+      <StatusLine text={text} updated={data ? 'updated ' + clock(data.fetchedAt) : ''}>
+        <ViewToggle view={view} onChange={setView} />
+      </StatusLine>
+      {data && view === 'cards' && <CardGrid rows={shown} rowKey={(r) => r.u.login} tone={tone} card={(r) => <StudentCard u={r.u} rank={r.rank} />} />}
+      {data && view === 'table' && <DataTable columns={columns} rows={shown} rowKey={(r) => r.u.login} tone={tone} />}
       <Pager page={page} pages={data ? pages : 1} href={(n) => rankHref({ ...s, page: n })} />
     </section>
   );
