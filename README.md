@@ -1,4 +1,4 @@
-# 42 rank
+# Peerboard
 
 Campus rankings, transfers between campuses and a level calculator for 42 students, from the 42 API.
 

@@ -8,7 +8,7 @@ import { getSession } from '@/lib/server/sessions';
 import type { Ranking } from '@/lib/types';
 import './globals.css';
 
-export const metadata: Metadata = { title: '42 rank', referrer: 'no-referrer' };
+export const metadata: Metadata = { title: 'Peerboard', referrer: 'no-referrer' };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   let me = getSession((await cookies()).get('sid')?.value)?.user ?? null;

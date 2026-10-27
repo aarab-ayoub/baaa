@@ -135,7 +135,7 @@ export function Header({ nav }: { nav: boolean }) {
     <header className="sticky top-4 z-50 mx-auto mt-4 mb-[18px] max-w-[1100px] px-4">
       <div className="flex h-[56px] items-center justify-between gap-4 rounded-[16px] border border-[#e5e5e5] bg-white/75 px-4 backdrop-blur-[16px] phone:px-3">
         <div className="flex min-w-0 items-center gap-6 phone:gap-2">
-          <Link href="/" scroll={false} aria-label="42 rank" className="hover:no-underline">
+          <Link href="/" scroll={false} aria-label="Peerboard" className="hover:no-underline">
             <Logo compact={nav} />
           </Link>
           {nav && (
