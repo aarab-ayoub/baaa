@@ -5,9 +5,9 @@ import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
 const SIZE = 176;
-const DELAY_MS = 2000; // a quick pass over a photo shouldn't open it
+const DELAY_MS = 1000; // a quick pass over a photo shouldn't open it
 
-// an avatar; resting on it for 2s grows the photo out of it, big enough to see who that
+// an avatar; resting on it for 1s grows the photo out of it, big enough to see who that
 // is. fixed to the window so no table or scroll box can cut it off, and gone on scroll
 export function PhotoZoom({ u, size = 40 }: { u: { login: string; img: string | null; photo: string | null }; size?: 40 | 72 }) {
   const [box, setBox] = useState<DOMRect | null>(null);
@@ -42,7 +42,7 @@ export function PhotoZoom({ u, size = 40 }: { u: { login: string; img: string | 
       {box && (
         <span
           aria-hidden="true"
-          className="pointer-events-none fixed z-50 block size-[176px] origin-left animate-pop overflow-hidden rounded-[22px] border-4 border-white bg-[#eee] shadow-[0_14px_36px_rgba(17,47,44,.22)]"
+          className="pointer-events-none fixed z-50 block size-[176px] origin-left animate-pop overflow-hidden rounded-[22px] border-4 border-white bg-[#eee] shadow-[0_14px_36px_rgba(17,17,17,.22)]"
           style={{ left: box.right + 12, top: top! }}
         >
           {/* the small photo is already loaded; the sharp one only shows once it has arrived,

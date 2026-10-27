@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- 42 rank: a podium on Deep Slate Green, 1st place in Yellow Ocher (Wada, combination 325) -->
-  <rect width="32" height="32" rx="7" fill="#112f2c"/>
-  <rect x="5" y="12" width="6" height="14" rx="1.5" fill="#94a1a0"/>
-  <rect x="13" y="6" width="6" height="20" rx="1.5" fill="#e2b540"/>
-  <rect x="21" y="17" width="6" height="9" rx="1.5" fill="#94a1a0"/>
+  <!-- 42 rank: a podium on 1337's near-black, 1st place in its green (1337.ma) -->
+  <rect width="32" height="32" rx="7" fill="#111"/>
+  <rect x="5" y="12" width="6" height="14" rx="1.5" fill="#8a8a8a"/>
+  <rect x="13" y="6" width="6" height="20" rx="1.5" fill="#a3de83"/>
+  <rect x="21" y="17" width="6" height="9" rx="1.5" fill="#8a8a8a"/>
 </svg>

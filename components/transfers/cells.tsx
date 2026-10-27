@@ -51,14 +51,14 @@ export function MoveDate({ m }: { m: Move }) {
   return <span className="text-[#8a8a8a] tabular-nums">{month(m.at)}</span>;
 }
 
-// where they're going, as on the cards: "🇫🇷 France"
+// where they're going, as on the cards: the city of the campus, "🇫🇷 Paris"
 export function Destination({ to }: { to?: Campus }) {
   return (
-    <span className="truncate" title={to ? `${to.name}, ${to.country}` : undefined}>
+    <span className="truncate" title={to ? `${to.name}, ${countryName(to.country)}` : undefined}>
       <span aria-hidden="true" className="mr-[5px]">
         {flag(to?.country)}
       </span>
-      {countryName(to?.country)}
+      {to ? to.name : '?'}
     </span>
   );
 }

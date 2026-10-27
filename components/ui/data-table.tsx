@@ -30,7 +30,7 @@ export function DataTable<T>({ columns, rows, rowKey, tone }: { columns: Column<
               {columns.map((c) => (
                 <td
                   key={c.head}
-                  className={cn('whitespace-nowrap border-b border-[#f0f0f0] px-3 py-[9px] text-[15px]', t.hl ? 'bg-[#fff8d6]' : t.mine && 'bg-ink/6', t.gone && 'text-[#9a9a9a]', c.className, c.cellClassName)}
+                  className={cn('whitespace-nowrap border-b border-[#f0f0f0] px-3 py-[9px] text-[15px]', t.hl ? 'bg-[#e8f7e0]' : t.mine && 'bg-ink/6', t.gone && 'text-[#9a9a9a]', c.className, c.cellClassName)}
                 >
                   {c.cell(row)}
                 </td>

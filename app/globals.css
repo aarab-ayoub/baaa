@@ -7,12 +7,11 @@
 /* phones: the same breakpoint the page always had */
 @custom-variant phone (@media (max-width: 560px));
 
-/* the two brand colors, a pair from Sanzo Wada's "A Dictionary of Color Combinations"
-   (1933, combination 325): ink is "Deep Slate Green", gold is "Yellow Ocher", first
-   place on the podium. gold carries ink text (7.4:1), never white */
+/* the two brand colors, 1337's own (1337.ma): its green, first place on the podium, and
+   the near-black its green buttons carry as text. green carries ink text (12:1), never white */
 @theme {
-  --color-gold: #e2b540;
-  --color-ink: #112f2c;
+  --color-green: #a3de83;
+  --color-ink: #111;
 
   /* a photo growing out of its avatar */
   --animate-pop: pop 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;

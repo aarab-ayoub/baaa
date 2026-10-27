@@ -11,13 +11,13 @@ import { go } from '@/lib/client/nav';
 import { movesHref, rankHref } from '@/lib/url-state';
 import { cn } from '@/lib/utils';
 
-// the gold pill on the right of the bar
+// the green pill on the right of the bar
 const CTA =
-  'inline-flex h-[30px] items-center rounded-full border border-ink/10 bg-gold px-4 py-0 text-[14px] font-medium tracking-[0.35px] whitespace-nowrap text-ink ' +
+  'inline-flex h-[30px] items-center rounded-full border border-ink/10 bg-green px-4 py-0 text-[14px] font-medium tracking-[0.35px] whitespace-nowrap text-ink ' +
   'shadow-[inset_0_1px_2px_rgba(255,255,255,.35),0_3px_3px_-1.5px_rgba(16,24,40,.06),0_1px_1px_rgba(16,24,40,.08)] transition-[filter] hover:brightness-95 hover:no-underline';
 const ITEM = 'block w-full rounded-[8px] border-0 bg-transparent px-3 py-2 text-left text-[14px] text-[#1a1a1a] hover:bg-[#f3f3f3]';
 
-// a tab; the one you're on sits in a light gold pill
+// a tab; the one you're on sits in a light green pill
 function Tab({ on, href, onClick, children }: { on: boolean; href: string; onClick?: (e: React.MouseEvent) => void; children: ReactNode }) {
   return (
     <Link
@@ -27,7 +27,7 @@ function Tab({ on, href, onClick, children }: { on: boolean; href: string; onCli
       aria-current={on ? 'page' : undefined}
       className={cn(
         'rounded-full px-3 py-[6px] text-[#737373] transition-colors hover:bg-ink/5 hover:text-[#0a0a0a] hover:no-underline phone:px-2',
-        on && 'bg-gold/30 text-ink hover:bg-gold/30 hover:text-ink'
+        on && 'bg-green/40 text-ink hover:bg-green/40 hover:text-ink'
       )}
     >
       {children}

@@ -136,7 +136,7 @@ export function CalculatorView() {
         <div className="relative mx-auto mt-[18px] h-[6px] max-w-[420px] overflow-hidden rounded-[999px] bg-[#efefef]" aria-hidden="true">
           <div className="absolute top-0 bottom-0 left-0 bg-[#cfcfcf] transition-[width,left] duration-[250ms] ease-[ease]" style={{ width: nowPct + '%' }} />
           <div
-            className="absolute top-0 bottom-0 left-0 bg-gold transition-[width,left] duration-[250ms] ease-[ease]"
+            className="absolute top-0 bottom-0 left-0 bg-green transition-[width,left] duration-[250ms] ease-[ease]"
             style={{ left: nowPct + '%', width: Math.max(0, endPct - nowPct) + '%' }}
           />
         </div>

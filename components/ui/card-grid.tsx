@@ -14,8 +14,8 @@ export function CardGrid<T>({ rows, rowKey, tone, card }: { rows: T[]; rowKey: (
             key={rowKey(row)}
             data-hl={t.hl || undefined}
             className={cn(
-              'min-w-0 rounded-[14px] border border-[#ececec] bg-white px-4 pt-3 pb-4 text-center transition-shadow hover:shadow-[0_6px_20px_rgba(17,47,44,.08)] phone:px-3',
-              t.hl ? 'border-gold bg-[#fff8d6]' : t.mine && 'bg-ink/6',
+              'min-w-0 rounded-[14px] border border-[#ececec] bg-white px-4 pt-3 pb-4 text-center transition-shadow hover:shadow-[0_6px_20px_rgba(17,17,17,.08)] phone:px-3',
+              t.hl ? 'border-green bg-[#e8f7e0]' : t.mine && 'bg-ink/6',
               t.gone && 'text-[#9a9a9a]'
             )}
           >
