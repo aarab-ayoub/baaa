@@ -29,10 +29,13 @@ export function rncpOf(login: string) {
 }
 
 async function load(login: string): Promise<RncpData> {
-  const [u, all] = await Promise.all([get<ApiUser>(`/v2/users/${encodeURIComponent(login)}`).then((r) => r.data), catalog()]);
+  // your profile and events go first in the api queue, at the same time; the catalog never
+  // makes you wait (lib/server/projects.ts)
+  const who = encodeURIComponent(login);
+  const [u, signedUp, all] = await Promise.all([get<ApiUser>(`/v2/users/${who}`, true).then((r) => r.data), getAll<ApiEvent>(`/v2/users/${who}/events`, true), catalog()]);
   // events you signed up for that already took place; outside ones and clubs' don't count
   const now = Date.now();
-  const events = (await getAll<ApiEvent>(`/v2/users/${u.id}/events`)).filter((e) => e.kind !== 'extern' && e.kind !== 'association' && Date.parse(e.begin_at) <= now);
+  const events = signedUp.filter((e) => e.kind !== 'extern' && e.kind !== 'association' && Date.parse(e.begin_at) <= now);
 
   // a project tried more than once: the validated try, else the latest
   const projects: Record<number, Done> = {};

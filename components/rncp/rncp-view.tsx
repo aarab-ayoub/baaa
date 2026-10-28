@@ -10,7 +10,7 @@ import { memory } from '@/lib/client/memory';
 import { go } from '@/lib/client/nav';
 import { usePlan } from '@/lib/client/plan';
 import { CORE_END, EXPERIENCES, GROUP_PROJECTS, groupProjects, levelWithPlan, step, SUITE, tally, TITLES, TRACKS, type RncpData, type TrackId } from '@/lib/rncp';
-import { clock, cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 // the level and track pickers: each row shares the full width evenly
 const PICK = 'min-w-0 rounded-full border border-[#e3e3e3] bg-white px-4 py-[9px] text-center text-[14px] font-medium text-[#555] hover:border-ink hover:text-ink';
@@ -80,7 +80,7 @@ export function RncpView() {
     return (
       <section>
         {pickers}
-        <StatusLine text={error ? 'Something went wrong: ' + error.message : 'Loading your record… the first time it can take ~30s.'} />
+        <StatusLine text={error ? 'Something went wrong: ' + error.message : 'Loading your record…'} />
       </section>
     );
   }
@@ -110,7 +110,7 @@ export function RncpView() {
   return (
     <section>
       {pickers}
-      <StatusLine text={text} updated={'updated ' + clock(data.fetchedAt)}>
+      <StatusLine text={text}>
         {plans > 0 && (
           <button type="button" onClick={() => setPlan({})} className="rounded-full border border-[#e3e3e3] bg-white px-3 py-[3px] text-[13px] text-[#555] hover:border-ink hover:text-ink">
             Clear plan
@@ -146,7 +146,7 @@ export function RncpView() {
         />
         <Requirement
           label="Group projects"
-          note="validated after ft_transcendence"
+          note="after ft_transcendence"
           value={`${groups.done}${groups.planned ? ` + ${groups.planned} planned` : ''} / ${GROUP_PROJECTS}`}
           ok={checks[3].ok}
           withPlan={checks[3].withPlan}
@@ -155,7 +155,7 @@ export function RncpView() {
         </Requirement>
       </div>
 
-      <div className={cn('grid grid-cols-2 items-start gap-3 phone:grid-cols-1', COLUMNS[cards.length])}>
+      <div data-cards className={cn('grid grid-cols-2 gap-3 phone:grid-cols-1', COLUMNS[cards.length])}>
         {cards.map((c) => (
           <CategoryCard key={c.name} category={c} data={data} plan={plan} onPlan={onPlan} />
         ))}

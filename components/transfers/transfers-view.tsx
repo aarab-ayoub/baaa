@@ -23,7 +23,7 @@ import { go } from '@/lib/client/nav';
 import { useListView } from '@/lib/client/view';
 import type { Campus, Move, MoveStatus, Transfers } from '@/lib/types';
 import { movesHref, movesState, type MovesState } from '@/lib/url-state';
-import { clock, PER_PAGE } from '@/lib/utils';
+import { PER_PAGE } from '@/lib/utils';
 
 type Side = 'from' | 'to';
 
@@ -128,7 +128,7 @@ export function TransfersView() {
           }}
         />
       </FilterBar>
-      <StatusLine text={text} updated={data ? 'updated ' + clock(data.fetchedAt) : ''}>
+      <StatusLine text={text}>
         <ViewToggle view={view} onChange={setView} />
       </StatusLine>
       {data && view === 'cards' && (

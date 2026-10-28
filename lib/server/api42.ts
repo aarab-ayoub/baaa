@@ -29,28 +29,30 @@ async function fetchToken() {
 export const bearer = async () => `Bearer ${await getToken()}`;
 
 // --- rate-limited GET (app limit is 2 req/s) -----------------------------
-const lane = once('lane', () => ({ last: 0, busy: false, queue: [] as (() => void)[] }));
+// a call someone is waiting on right now (urgent) goes before work that can wait, like a
+// campus or the transfers being fetched again in the background
+const lane = once('lane', () => ({ last: 0, busy: false, urgent: [] as (() => void)[], queue: [] as (() => void)[] }));
 
-function throttle() {
+function throttle(urgent: boolean) {
   return new Promise<void>((resolve) => {
-    lane.queue.push(resolve);
+    (urgent ? lane.urgent : lane.queue).push(resolve);
     if (!lane.busy) drain();
   });
 }
 
 async function drain() {
   lane.busy = true;
-  while (lane.queue.length) {
+  while (lane.urgent.length || lane.queue.length) {
     const wait = lane.last + 550 - Date.now();
     if (wait > 0) await new Promise((r) => setTimeout(r, wait));
     lane.last = Date.now();
-    lane.queue.shift()!();
+    (lane.urgent.shift() ?? lane.queue.shift())!();
   }
   lane.busy = false;
 }
 
-export async function get<T>(url: string, tries = 0): Promise<{ data: T; total: number }> {
-  await throttle();
+export async function get<T>(url: string, urgent = false, tries = 0): Promise<{ data: T; total: number }> {
+  await throttle(urgent);
   let res: Response;
   try {
     res = await fetch(API + url, { headers: { Authorization: await bearer() }, cache: 'no-store' });
@@ -58,23 +60,23 @@ export async function get<T>(url: string, tries = 0): Promise<{ data: T; total: 
     // a dropped connection now and then shouldn't sink a job of a hundred calls
     if (tries >= 3) throw e;
     await new Promise((r) => setTimeout(r, 1000));
-    return get(url, tries + 1);
+    return get(url, urgent, tries + 1);
   }
   if (res.status === 401 && tries < 1) {
     await getToken(true);
-    return get(url, tries + 1);
+    return get(url, urgent, tries + 1);
   }
   if (res.status === 429 && tries < 5) {
     await new Promise((r) => setTimeout(r, 1500));
-    return get(url, tries + 1);
+    return get(url, urgent, tries + 1);
   }
   if (!res.ok) throw new Error(`${url} -> ${res.status}`);
   return { data: await res.json(), total: Number(res.headers.get('x-total') || 0) };
 }
 
-export async function getAll<T>(url: string): Promise<T[]> {
+export async function getAll<T>(url: string, urgent = false): Promise<T[]> {
   const sep = url.includes('?') ? '&' : '?';
-  const page = (n: number) => get<T[]>(`${url}${sep}per_page=100&page=${n}`);
+  const page = (n: number) => get<T[]>(`${url}${sep}per_page=100&page=${n}`, urgent);
   const first = await page(1);
   const pages = Math.ceil(first.total / 100);
   const rest = await Promise.all(Array.from({ length: Math.max(0, pages - 1) }, (_, i) => page(i + 2)));

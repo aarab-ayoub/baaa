@@ -7,7 +7,6 @@ export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
 export const PER_PAGE = 100;
 export const FRESH_MS = 10 * 60 * 1000;
 
-export const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 export const month = (day: string) => new Date(day).toLocaleDateString('en', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 export const fmt = (n: number) => Math.round(n).toLocaleString('en');
 

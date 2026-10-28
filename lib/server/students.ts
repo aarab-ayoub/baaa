@@ -16,9 +16,6 @@ export type ApiUser = {
 };
 export type CursusUser = { begin_at: string; end_at: string | null; level: number; cursus_id: number; user: ApiUser };
 
-// photos we show instead of the intra one
-export const PHOTO_OVERRIDES: Record<string, string> = { ayaarab: '/chongo.jpg' };
-
 export const isStudent = (cu: CursusUser) => cu.user && cu.user.kind === 'student' && !cu.user['staff?'];
 
 // one 42cursus row -> what the page shows about that student
@@ -33,8 +30,8 @@ export function student(cu: CursusUser): Student {
   return {
     login: u.login,
     name: u.usual_full_name || u.displayname || '',
-    img: PHOTO_OVERRIDES[u.login] || localImage(v?.small || v?.micro || u.image?.link),
-    photo: PHOTO_OVERRIDES[u.login] || localImage(v?.medium || v?.small || u.image?.link),
+    img: localImage(v?.small || v?.micro || u.image?.link),
+    photo: localImage(v?.medium || v?.small || u.image?.link),
     level: cu.level,
     promo: u.pool_year || '',
     bh: ended ? cu.end_at!.slice(0, 10) : null,

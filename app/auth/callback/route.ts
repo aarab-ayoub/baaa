@@ -4,7 +4,6 @@ import { API, CURSUS, FT_SECRET, FT_UID, REDIRECT_URI } from '@/lib/server/confi
 import { cookie, redirect } from '@/lib/server/http';
 import { localImage } from '@/lib/server/images';
 import { SESSION_MS, startSession } from '@/lib/server/sessions';
-import { PHOTO_OVERRIDES } from '@/lib/server/students';
 import type { Me } from '@/lib/types';
 
 const FAILED = '/?login=failed';
@@ -57,11 +56,11 @@ export async function GET(req: NextRequest) {
     const me: ApiMe = await mr.json();
     // 42's own students and staff only: partner (external) accounts see nothing
     if (me.kind !== 'student' && me.kind !== 'admin') return redirect(DENIED, [clear]);
-    const cu =(me.cursus_users || []).find((c) => c.cursus_id === CURSUS);
+    const cu = (me.cursus_users || []).find((c) => c.cursus_id === CURSUS);
     const user: Me = {
       login: me.login,
       name: me.usual_full_name || me.displayname || '',
-      img: PHOTO_OVERRIDES[me.login] || localImage(me.image?.versions?.small || me.image?.versions?.micro || me.image?.link),
+      img: localImage(me.image?.versions?.small || me.image?.versions?.micro || me.image?.link),
       level: cu ? cu.level : null,
       promo: me.pool_year || '',
       campus: (me.campus_users || []).find((c) => c.is_primary)?.campus_id || me.campus?.[0]?.id || null,

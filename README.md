@@ -33,7 +33,7 @@ Functions run in Paris (`vercel.json`), the Vercel region closest to Morocco.
 
 ## RNCP
 
-The RNCP page checks your own record against RNCP 6 (IT solutions designer and developer: web and mobile, or applicative) and RNCP 7 (IT architecture expert: information systems and networks, or database architecture and data), and lets you plan projects with the mark you expect. The requirements are 42's, from the "RNCP 6 certificate" and "RNCP 7 certificate" articles on meta.intra.42.fr, as checked on 26 October 2026 by [42calculator](https://github.com/lucas-ht/42calculator) and [42insight](https://github.com/fzphr/42insight); they live in `lib/rncp.ts`. Project names, XP and which projects are group ones come live from the 42 API.
+The RNCP page checks your own record against RNCP 6 (IT solutions designer and developer: web and mobile, or applicative) and RNCP 7 (IT architecture expert: information systems and networks, or database architecture and data), and lets you plan projects with the mark you expect. The requirements are 42's, from the "RNCP 6 certificate" and "RNCP 7 certificate" articles on meta.intra.42.fr, as checked on 26 October 2026 by [42calculator](https://github.com/lucas-ht/42calculator) and [42insight](https://github.com/fzphr/42insight); they live in `lib/rncp.ts`. Project names, XP and which projects are group ones come live from the 42 API (a ~30s fetch, kept a day); until it has arrived, the copy in `lib/server/catalog-seed.json` answers, so the page opens in a second or two. It holds course data only, no students. Refresh it now and then with `node --env-file=.env scripts/catalog-seed.mjs`.
 
 ## Where things are
 

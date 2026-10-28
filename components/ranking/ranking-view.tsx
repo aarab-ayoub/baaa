@@ -22,7 +22,7 @@ import { go } from '@/lib/client/nav';
 import { useListView } from '@/lib/client/view';
 import type { Campus, Ranking, RankedStudent } from '@/lib/types';
 import { rankHref, rankState, type RankState } from '@/lib/url-state';
-import { clock, PER_PAGE } from '@/lib/utils';
+import { PER_PAGE } from '@/lib/utils';
 
 type Row = { u: RankedStudent; rank: number };
 
@@ -151,7 +151,7 @@ export function RankingView() {
           }}
         />
       </FilterBar>
-      <StatusLine text={text} updated={data ? 'updated ' + clock(data.fetchedAt) : ''}>
+      <StatusLine text={text}>
         <ViewToggle view={view} onChange={setView} />
       </StatusLine>
       {data && view === 'cards' && <CardGrid rows={shown} rowKey={(r) => r.u.login} tone={tone} card={(r) => <StudentCard u={r.u} rank={r.rank} />} />}
