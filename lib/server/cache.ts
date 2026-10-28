@@ -53,9 +53,10 @@ export function warm<T>(key: string, fn: () => Promise<T>) {
   after(() => p.then(() => {}, (e: Error) => console.error('refresh:', e.message)));
 }
 
-export async function cached<T>(key: string, fn: () => Promise<T>, maxAge = FRESH_MS): Promise<T> {
+// `update`, when given, refreshes old data from what's kept instead of fetching it all again
+export async function cached<T>(key: string, fn: () => Promise<T>, maxAge = FRESH_MS, update?: (old: Entry<T>) => Promise<T>): Promise<T> {
   const hit = await peek<T>(key, maxAge);
   if (!hit) return (await keep(key, fn)).value;
-  if (Date.now() - hit.at > maxAge) warm(key, fn);
+  if (Date.now() - hit.at > maxAge) warm(key, update ? () => update(hit) : fn);
   return hit.value;
 }

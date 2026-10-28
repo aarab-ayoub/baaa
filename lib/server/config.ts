@@ -14,5 +14,7 @@ export const SECURE = REDIRECT_URI.startsWith('https:');
 
 export const API = 'https://api.intra.42.fr';
 export const CURSUS = 21; // 42cursus
-export const FRESH_MS = 10 * 60 * 1000; // after this, cached data is served once more while it's fetched again
+// after this, cached data is served once more while it's fetched again (FRESH_SECONDS can
+// change it, e.g. to watch a refresh happen without waiting ten minutes)
+export const FRESH_MS = (Number(process.env.FRESH_SECONDS) || 10 * 60) * 1000;
 export const CAMPUS_MS = 24 * 60 * 60 * 1000;
