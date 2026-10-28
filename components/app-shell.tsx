@@ -44,7 +44,11 @@ export function AppShell({ me, children }: { me: Me | null; children: ReactNode 
     else if (!locked && params.has('login')) router.replace('/');
   }, []);
 
-  const text = ended ? 'Your session ended, sign in again.' : params.get('login') === 'failed' ? "That didn't work, try again." : '';
+  const why = params.get('login');
+  let text = '';
+  if (ended) text = 'Your session ended, sign in again.';
+  else if (why === 'failed') text = "That didn't work, try again.";
+  else if (why === 'denied') text = 'Peerboard is for 42 students and staff only.';
   return (
     <AppContext value={{ me, defaultCampus: me?.campus ? String(me.campus) : '75', highlight, setHighlight }}>
       {/* a campus's data is kept for 10 minutes like before, and asked for again after */}

@@ -8,9 +8,11 @@ import { PHOTO_OVERRIDES } from '@/lib/server/students';
 import type { Me } from '@/lib/types';
 
 const FAILED = '/?login=failed';
+const DENIED = '/?login=denied';
 
 type ApiMe = {
   login: string;
+  kind?: string;
   usual_full_name?: string;
   displayname?: string;
   pool_year?: string;
@@ -53,7 +55,9 @@ export async function GET(req: NextRequest) {
     });
     if (!mr.ok) return redirect(FAILED, [clear]);
     const me: ApiMe = await mr.json();
-    const cu = (me.cursus_users || []).find((c) => c.cursus_id === CURSUS);
+    // 42's own students and staff only: partner (external) accounts see nothing
+    if (me.kind !== 'student' && me.kind !== 'admin') return redirect(DENIED, [clear]);
+    const cu =(me.cursus_users || []).find((c) => c.cursus_id === CURSUS);
     const user: Me = {
       login: me.login,
       name: me.usual_full_name || me.displayname || '',
@@ -64,7 +68,6 @@ export async function GET(req: NextRequest) {
     };
 
     const sid = startSession(user);
-    console.log('login:', user.login);
     return redirect('/', [clear, cookie('sid', sid, SESSION_MS / 1000)]);
   } catch (e) {
     console.error('login:', (e as Error).message);

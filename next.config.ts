@@ -10,6 +10,10 @@ const SECURITY_HEADERS = {
   'Origin-Agent-Cluster': '?1',
   'X-DNS-Prefetch-Control': 'off',
   'X-Permitted-Cross-Domain-Policies': 'none',
+  // https only once deployed (browsers ignore it on http://localhost)
+  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains',
+  // nothing here belongs in a search engine, not even the login page
+  'X-Robots-Tag': 'noindex, nofollow, noarchive',
   'Permissions-Policy':
     'accelerometer=(), autoplay=(), camera=(), display-capture=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), usb=(), xr-spatial-tracking=(), interest-cohort=()',
 };

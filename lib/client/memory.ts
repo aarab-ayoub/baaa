@@ -15,6 +15,7 @@ export const memory = {
   landing: null as string | null,
   scrollPending: false,
   level: null as number | null, // the calculator's current level
+  rncpTrack: null as string | null, // the RNCP track looked at last
   rankQuery: '',
   movesQuery: '',
   onUnauthorized: () => {},

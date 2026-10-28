@@ -26,7 +26,7 @@ function Tab({ on, href, onClick, children }: { on: boolean; href: string; onCli
       onClick={onClick}
       aria-current={on ? 'page' : undefined}
       className={cn(
-        'rounded-full px-3 py-[6px] text-[#737373] transition-colors hover:bg-ink/5 hover:text-[#0a0a0a] hover:no-underline phone:px-2',
+        'rounded-full px-3 py-[6px] whitespace-nowrap text-[#737373] transition-colors hover:bg-ink/5 hover:text-[#0a0a0a] hover:no-underline phone:px-[7px]',
         on && 'bg-green/40 text-ink hover:bg-green/40 hover:text-ink'
       )}
     >
@@ -101,7 +101,7 @@ export function Header({ nav }: { nav: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const { me, defaultCampus, setHighlight } = useApp();
-  const view = pathname.startsWith('/transfers') ? 'transfers' : pathname.startsWith('/calculator') ? 'calc' : 'rank';
+  const view = pathname.startsWith('/transfers') ? 'transfers' : pathname.startsWith('/calculator') ? 'calc' : pathname.startsWith('/rncp') ? 'rncp' : 'rank';
 
   // the ranking and the transfers open on the campus on screen; each gets its own
   // filters back only when that's the campus they were left on
@@ -134,13 +134,14 @@ export function Header({ nav }: { nav: boolean }) {
 
   return (
     <header className="sticky top-4 z-50 mx-auto mt-4 mb-[18px] max-w-[1100px] px-4">
-      <div className="flex h-[56px] items-center justify-between gap-4 rounded-[16px] border border-[#e5e5e5] bg-white/75 px-4 backdrop-blur-[16px] phone:px-3">
+      <div className="flex h-[56px] items-center justify-between gap-4 rounded-[16px] border border-[#e5e5e5] bg-white/75 px-4 backdrop-blur-[16px] phone:gap-2 phone:px-3">
         <div className="flex min-w-0 items-center gap-6 phone:gap-2">
           <Link href={home} scroll={false} onClick={() => scrollTo(0, 0)} aria-label="Peerboard" className="hover:no-underline">
             <Logo compact={nav} />
           </Link>
           {nav && (
-            <nav className="flex items-center gap-1 text-[14px] font-medium phone:gap-0 phone:text-[13px]">
+            // four tabs on a phone: short names, and they scroll rather than run under your photo
+            <nav className="flex min-w-0 items-center gap-1 text-[14px] font-medium phone:gap-0 phone:overflow-x-auto phone:text-[13px] phone:[scrollbar-width:none]">
               <Tab on={view === 'rank'} href="/" onClick={open(ranking)}>
                 Ranking
               </Tab>
@@ -148,7 +149,11 @@ export function Header({ nav }: { nav: boolean }) {
                 Transfers
               </Tab>
               <Tab on={view === 'calc'} href="/calculator">
-                Calculator
+                <span className="phone:hidden">Calculator</span>
+                <span className="hidden phone:inline">Calc</span>
+              </Tab>
+              <Tab on={view === 'rncp'} href="/rncp">
+                RNCP
               </Tab>
             </nav>
           )}
