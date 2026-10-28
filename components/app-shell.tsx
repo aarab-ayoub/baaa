@@ -7,6 +7,7 @@ import { Header } from '@/components/header';
 import { LoginScreen } from '@/components/login-screen';
 import { ScrollTop } from '@/components/ui/scroll-top';
 import { fetcher } from '@/lib/client/fetcher';
+import { addFlagFontIfNeeded } from '@/lib/client/flags';
 import { memory } from '@/lib/client/memory';
 import { go } from '@/lib/client/nav';
 import type { Me } from '@/lib/types';
@@ -41,6 +42,7 @@ export function AppShell({ me, children }: { me: Me | null; children: ReactNode 
   // once, when the page opens
   useEffect(() => {
     memory.onUnauthorized = () => setEnded(true);
+    addFlagFontIfNeeded();
     const old = location.hash && legacyHref(location.hash);
     // a tick later: this early, next hasn't hooked into the history api yet
     if (old) setTimeout(() => go(old, true));

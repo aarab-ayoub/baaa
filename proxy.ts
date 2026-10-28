@@ -20,6 +20,7 @@ export function proxy(request: NextRequest) {
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ''}`,
     `style-src 'self' ${dev ? "'unsafe-inline'" : `'nonce-${nonce}'`}`,
     "img-src 'self'",
+    "font-src 'self'",
     "connect-src 'self'",
     "manifest-src 'none'",
     "base-uri 'none'",
@@ -36,4 +37,4 @@ export function proxy(request: NextRequest) {
 
 // pages only: the api and photo routes do their own checks (lib/server/http.ts), and files
 // like the icons need no content security policy
-export const config = { matcher: ['/((?!api/|img/|auth/|_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|robots.txt).*)'] };
+export const config = { matcher: ['/((?!api/|img/|auth/|_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|robots.txt|fonts/).*)'] };

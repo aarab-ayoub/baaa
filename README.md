@@ -35,6 +35,10 @@ Functions run in Paris (`vercel.json`), the Vercel region closest to Morocco.
 
 The RNCP page checks your own record against RNCP 6 (IT solutions designer and developer: web and mobile, or applicative) and RNCP 7 (IT architecture expert: information systems and networks, or database architecture and data), and lets you plan projects with the mark you expect. The requirements are 42's, from the "RNCP 6 certificate" and "RNCP 7 certificate" articles on meta.intra.42.fr, as checked on 26 October 2026 by [42calculator](https://github.com/lucas-ht/42calculator) and [42insight](https://github.com/fzphr/42insight); they live in `lib/rncp.ts`. Project names, XP and which projects are group ones come live from the 42 API (a ~30s fetch, kept a day); until it has arrived, the copy in `lib/server/catalog-seed.json` answers, so the page opens in a second or two. It holds course data only, no students. Refresh it now and then with `node --env-file=.env scripts/catalog-seed.mjs`.
 
+## Credits
+
+- Country flags on Windows (which has no flag emojis): the "Twemoji Country Flags" font from [country-flag-emoji-polyfill](https://github.com/talkjs/country-flag-emoji-polyfill) (MIT); the flag art is [Twemoji](https://github.com/twitter/twemoji) by Twitter, licensed [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
 ## Where things are
 
 - `app/`: the pages (`/`, `/transfers`, `/calculator`) and routes (`/api/*`, `/auth/*`, `/img/*`)
