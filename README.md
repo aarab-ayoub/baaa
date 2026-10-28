@@ -27,7 +27,7 @@ Functions run in Paris (`vercel.json`), the Vercel region closest to Morocco.
 
 - Nobody sees anything before logging in with 42: every page shows the login screen, and `/api/*` and `/img/*` answer 401. Only 42 students and staff can log in, not partner (external) accounts.
 - The RNCP page shows your own record only: the login comes from your session, never from the URL.
-- Browsers keep nothing: every answer is `no-store`, the session is a single signed cookie, and logging out also clears the browser's cache. The table/cards choice is the only thing saved in the browser.
+- Browsers keep nothing: every answer is `no-store`, the session is a single signed cookie, and logging out removes it. The table/cards choice is the only thing saved in the browser.
 - The server writes nothing to disk. API data sits in memory and in Vercel's runtime cache (shared by the app's servers, kept across deploys; on your machine it's memory too) and is fetched again every 10 minutes, the transfers every hour. Photos pass through and stay in memory for a while.
 - A campus nobody opened recently comes in best students first: 42 sorts them by level, so the top of the list shows after one call (a few seconds) while the rest streams in. The 42 API allows 2 calls a second.
 

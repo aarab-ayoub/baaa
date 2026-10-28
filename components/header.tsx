@@ -68,7 +68,8 @@ function UserMenu({ onMyRank }: { onMyRank: () => void }) {
   if (!me) return null;
 
   const logout = async () => {
-    await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+    // never more than 3s on this page, whatever the network does
+    await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin', signal: AbortSignal.timeout(3000) }).catch(() => {});
     location.replace('/');
   };
   return (
