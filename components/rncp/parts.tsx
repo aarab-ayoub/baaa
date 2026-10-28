@@ -35,7 +35,7 @@ export function PlanButton({ planned, name, onClick }: { planned: boolean; name:
       aria-label={planned ? `take ${name} out of the plan` : `plan ${name}`}
       onClick={onClick}
       className={cn(
-        'inline-flex size-[26px] flex-none items-center justify-center rounded-full border border-[#e3e3e3] bg-white p-0 text-[16px] leading-none text-[#555] hover:border-ink hover:text-ink',
+        'inline-flex size-[22px] flex-none items-center justify-center rounded-full border border-[#e3e3e3] bg-white p-0 text-[15px] leading-none text-[#555] hover:border-ink hover:text-ink',
         planned && 'border-green bg-green text-ink hover:border-ink'
       )}
     >

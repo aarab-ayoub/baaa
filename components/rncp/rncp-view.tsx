@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { CategoryCard } from '@/components/rncp/category-card';
 import { Bar, PlanButton, Verdict } from '@/components/rncp/parts';
-import { FilterBar } from '@/components/ui/filter-bar';
 import { StatusLine } from '@/components/ui/status-line';
 import { memory } from '@/lib/client/memory';
 import { go } from '@/lib/client/nav';
@@ -13,8 +12,11 @@ import { usePlan } from '@/lib/client/plan';
 import { CORE_END, EXPERIENCES, GROUP_PROJECTS, groupProjects, levelWithPlan, step, SUITE, tally, TITLES, TRACKS, type RncpData, type TrackId } from '@/lib/rncp';
 import { clock, cn } from '@/lib/utils';
 
-const PILL = 'rounded-full border border-[#e3e3e3] bg-white px-4 py-[6px] text-[14px] text-[#555] hover:border-ink hover:text-ink';
-const PILL_ON = 'border-ink bg-ink text-white hover:text-white';
+// the level and track pickers: each row shares the full width evenly
+const PICK = 'min-w-0 rounded-full border border-[#e3e3e3] bg-white px-4 py-[9px] text-center text-[14px] font-medium text-[#555] hover:border-ink hover:text-ink';
+const PICK_ON = 'border-ink bg-ink text-white hover:text-white';
+// every category side by side on a wide screen, two per row on a tablet, one on a phone
+const COLUMNS: Record<number, string> = { 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4', 5: 'lg:grid-cols-5' };
 
 // one line of the general requirements
 function Requirement({ label, note, value, ok, withPlan, children }: { label: string; note: string; value: ReactNode; ok: boolean; withPlan: boolean; children?: ReactNode }) {
@@ -54,23 +56,24 @@ export function RncpView() {
   };
 
   const pickers = (
-    <>
-      <FilterBar>
+    <div className="mb-[10px] grid gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {([6, 7] as const).map((n) => (
-          <button key={n} type="button" aria-pressed={track.rncp === n} onClick={() => choose(TRACKS.find((t) => t.rncp === n)!.id)} className={cn(PILL, track.rncp === n && PILL_ON)}>
+          <button key={n} type="button" aria-pressed={track.rncp === n} onClick={() => choose(TRACKS.find((t) => t.rncp === n)!.id)} className={cn(PICK, track.rncp === n && PICK_ON)}>
             {`RNCP ${n}`}
+            <span className="hidden font-normal opacity-70 md:inline">{` · ${TITLES[n]}`}</span>
           </button>
         ))}
-        <span className="self-center pl-1 text-[13px] text-[#8a8a8a] phone:hidden">{TITLES[track.rncp]}</span>
-      </FilterBar>
-      <FilterBar>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
         {TRACKS.filter((t) => t.rncp === track.rncp).map((t) => (
-          <button key={t.id} type="button" aria-pressed={t.id === track.id} onClick={() => choose(t.id)} className={cn(PILL, t.id === track.id && PILL_ON)}>
-            {t.name}
+          <button key={t.id} type="button" aria-pressed={t.id === track.id} onClick={() => choose(t.id)} className={cn(PICK, t.id === track.id && PICK_ON)}>
+            <span className="hidden md:inline">{t.name}</span>
+            <span className="md:hidden">{t.short}</span>
           </button>
         ))}
-      </FilterBar>
-    </>
+      </div>
+    </div>
   );
 
   if (!data) {
@@ -151,7 +154,7 @@ export function RncpView() {
         </Requirement>
       </div>
 
-      <div className="grid grid-cols-2 items-start gap-3 phone:grid-cols-1">
+      <div className={cn('grid grid-cols-2 items-start gap-3 phone:grid-cols-1', COLUMNS[cards.length])}>
         {cards.map((c) => (
           <CategoryCard key={c.name} category={c} data={data} plan={plan} onPlan={onPlan} />
         ))}

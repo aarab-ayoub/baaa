@@ -8,7 +8,7 @@ import { levelToXp, xpToLevel } from '@/lib/xp';
 
 export type TrackId = 'web' | 'app' | 'sys' | 'data';
 export type Category = { name: string; xp: number; count: number; ids: number[] };
-export type Track = { id: TrackId; rncp: 6 | 7; name: string; level: number; events: number; experiences: number; categories: Category[] };
+export type Track = { id: TrackId; rncp: 6 | 7; name: string; short: string; level: number; events: number; experiences: number; categories: Category[] };
 
 export const TITLES = { 6: 'IT solutions designer and developer', 7: 'IT architecture expert' } as const;
 
@@ -19,6 +19,7 @@ export const TRACKS: Track[] = [
     id: 'web',
     rncp: 6,
     name: 'Web and mobile application development',
+    short: 'Web and mobile',
     level: 17,
     events: 10,
     experiences: 2,
@@ -31,6 +32,7 @@ export const TRACKS: Track[] = [
     id: 'app',
     rncp: 6,
     name: 'Applicative software development',
+    short: 'Applicative',
     level: 17,
     events: 10,
     experiences: 2,
@@ -54,6 +56,7 @@ export const TRACKS: Track[] = [
     id: 'sys',
     rncp: 7,
     name: 'Information systems and networks',
+    short: 'Systems and networks',
     level: 21,
     events: 15,
     experiences: 2,
@@ -72,6 +75,7 @@ export const TRACKS: Track[] = [
     id: 'data',
     rncp: 7,
     name: 'Database architecture and data',
+    short: 'Databases and data',
     level: 21,
     events: 15,
     experiences: 2,

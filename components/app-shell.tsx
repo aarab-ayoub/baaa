@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { SWRConfig } from 'swr';
 import { Header } from '@/components/header';
 import { LoginScreen } from '@/components/login-screen';
@@ -10,6 +10,7 @@ import { fetcher } from '@/lib/client/fetcher';
 import { memory } from '@/lib/client/memory';
 import type { Me } from '@/lib/types';
 import { legacyHref } from '@/lib/url-state';
+import { cn } from '@/lib/utils';
 import { FRESH_MS } from '@/lib/utils';
 
 type App = {
@@ -31,6 +32,7 @@ export function useApp() {
 export function AppShell({ me, children }: { me: Me | null; children: ReactNode }) {
   const router = useRouter();
   const params = useSearchParams();
+  const pathname = usePathname();
   const [ended, setEnded] = useState(false);
   const [highlight, setHighlight] = useState<string | null>(null);
   // nothing about anyone shows before you've logged in with 42
@@ -54,7 +56,8 @@ export function AppShell({ me, children }: { me: Me | null; children: ReactNode 
       {/* a campus's data is kept for 10 minutes like before, and asked for again after */}
       <SWRConfig value={{ fetcher, dedupingInterval: FRESH_MS, revalidateOnFocus: false, revalidateOnReconnect: false, shouldRetryOnError: false }}>
         <Header nav={!locked} />
-        <main className="mx-auto max-w-[900px] px-4 pb-[40px]">{locked ? <LoginScreen text={text} /> : children}</main>
+        {/* the RNCP page lays its categories side by side, so it gets the header's full width */}
+        <main className={cn('mx-auto max-w-[900px] px-4 pb-[40px]', pathname.startsWith('/rncp') && 'max-w-[1100px]')}>{locked ? <LoginScreen text={text} /> : children}</main>
         <ScrollTop />
       </SWRConfig>
     </AppContext>
