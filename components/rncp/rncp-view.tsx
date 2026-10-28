@@ -21,8 +21,8 @@ const COLUMNS: Record<number, string> = { 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-
 // one line of the general requirements
 function Requirement({ label, note, value, ok, withPlan, children }: { label: string; note: string; value: ReactNode; ok: boolean; withPlan: boolean; children?: ReactNode }) {
   return (
-    <div className="flex items-center gap-4 border-b border-[#f0f0f0] px-4 py-3 last:border-b-0 phone:flex-wrap phone:gap-x-3 phone:gap-y-2">
-      <div className="w-[220px] flex-none phone:w-auto phone:flex-1">
+    <div className="flex items-center gap-4 bg-white px-4 py-3 phone:flex-wrap phone:gap-x-3 phone:gap-y-2">
+      <div className="w-[170px] flex-none phone:w-auto phone:flex-1">
         <div className="text-[14px] font-medium">{label}</div>
         <div className="text-[12px] text-[#8a8a8a]">{note}</div>
       </div>
@@ -118,7 +118,8 @@ export function RncpView() {
         )}
       </StatusLine>
 
-      <div className="mb-3 rounded-[14px] border border-[#ececec] bg-white">
+      {/* two per line on a wide screen; the 1px gaps over a grey background are the lines between them */}
+      <div className="mb-3 grid gap-px overflow-hidden rounded-[14px] border border-[#ececec] bg-[#f0f0f0] lg:grid-cols-2">
         <Requirement
           label="Level"
           note="42cursus"
@@ -144,8 +145,8 @@ export function RncpView() {
           withPlan={checks[2].withPlan}
         />
         <Requirement
-          label="Group projects after the core"
-          note="outside the common core, validated after ft_transcendence"
+          label="Group projects"
+          note="validated after ft_transcendence"
           value={`${groups.done}${groups.planned ? ` + ${groups.planned} planned` : ''} / ${GROUP_PROJECTS}`}
           ok={checks[3].ok}
           withPlan={checks[3].withPlan}
