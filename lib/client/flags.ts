@@ -20,9 +20,13 @@ function paints(emoji: string) {
   return pixel('#fff') === black && !black.startsWith('0,0,0,');
 }
 
-// color emojis, but no flags: the page then takes its flags from our font (globals.css)
+// whenever a flag can't be seen painted, the page takes its flags from our font (globals.css):
+// windows, linux without an emoji font, and browsers that blur canvas drawings for privacy
+// (brave, tor, firefox resisting fingerprinting). at worst a mac shows twemoji's flags
 export function addFlagFontIfNeeded() {
+  let native = false;
   try {
-    if (paints('😊') && !paints('🇨🇭')) document.documentElement.classList.add('flag-font');
+    native = paints('🇨🇭');
   } catch {}
+  if (!native) document.documentElement.classList.add('flag-font');
 }
