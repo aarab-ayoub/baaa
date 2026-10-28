@@ -1,25 +1,20 @@
 import 'server-only';
-import fs from 'node:fs';
-import path from 'node:path';
 import { bearer } from './api42';
-import { etagOf, sha, writeDisk } from './cache';
-import { CACHE_DIR } from './config';
 import { once } from './once';
 
 // the cdn only serves student photos to logged-in intra users, so the browser
-// can't load them directly. we fetch them here with the app token and serve them
-// from /img/... — only urls that came out of the api are allowed (no open proxy).
+// can't load them directly. we fetch them here with the app token and pass them on
+// from /img/... — only photos of the 42 cdn (no open proxy), only to logged-in
+// students, and kept in memory for a while only: no photo is written to disk
 const CDN = 'https://cdn.intra.42.fr';
 const IMG = /^https:\/\/cdn\.intra\.42\.fr(\/users\/[0-9a-f]{32}\/[\w\-.]{1,80}\.(?:jpe?g|png|gif|webp))$/i;
 const IMG_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
-const EXT_TYPE: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
 const IMG_MAX_BYTES = 300 * 1024;
 const IMG_CACHE_BYTES = 64 * 1024 * 1024;
 
-export type Img = { type: string; body: Uint8Array<ArrayBuffer>; etag: string };
+export type Img = { type: string; body: Uint8Array<ArrayBuffer> };
 
 const s = once('images', () => ({
-  known: new Set<string>(),
   memory: new Map<string, Img>(), // path -> photo, oldest first (LRU)
   bytes: 0,
   pending: new Map<string, Promise<Img>>(),
@@ -27,24 +22,16 @@ const s = once('images', () => ({
   waiting: [] as (() => void)[],
 }));
 
-const imgFile = (p: string) => path.join(CACHE_DIR, 'img', sha(p).slice(0, 32));
-
-// an api photo url -> our /img/... path for it (and from now on it may be served)
+// an api photo url -> our /img/... path for it
 export function localImage(url?: string | null) {
   const m = url?.match(IMG);
-  if (!m) return null;
-  s.known.add(m[1]);
-  return '/img' + m[1];
+  return m ? '/img' + m[1] : null;
 }
 
-export const isKnownImage = (p: string) => s.known.has(p);
+// a path /img/... may ask for: a student photo on the 42 cdn, nothing else
+export const isPhotoPath = (p: string) => IMG.test(CDN + p);
 
-// photos named in data restored from disk may be served again
-export function rememberImage(url?: string | null) {
-  if (url?.startsWith('/img/')) s.known.add(url.slice(4));
-}
-
-async function fetchImage(p: string) {
+async function fetchImage(p: string): Promise<Img> {
   // at most 8 cdn downloads at a time
   if (s.active >= 8) await new Promise<void>((r) => s.waiting.push(r));
   s.active++;
@@ -66,18 +53,7 @@ async function fetchImage(p: string) {
   }
 }
 
-// memory first, then disk, then the cdn (and keep what we downloaded)
-async function loadImage(p: string) {
-  try {
-    const body = new Uint8Array(await fs.promises.readFile(imgFile(p)));
-    return { type: EXT_TYPE[p.split('.').pop()!.toLowerCase()], body };
-  } catch {
-    const img = await fetchImage(p);
-    writeDisk(imgFile(p), img.body);
-    return img;
-  }
-}
-
+// memory first, then the cdn
 export async function image(p: string): Promise<Img> {
   const hit = s.memory.get(p);
   if (hit) {
@@ -88,11 +64,10 @@ export async function image(p: string): Promise<Img> {
   if (!s.pending.has(p)) {
     s.pending.set(
       p,
-      loadImage(p)
-        .then(({ type, body }) => {
-          const img = { type, body, etag: etagOf(body) };
+      fetchImage(p)
+        .then((img) => {
           s.memory.set(p, img);
-          s.bytes += body.length;
+          s.bytes += img.body.length;
           for (const [k, v] of s.memory) {
             if (s.bytes <= IMG_CACHE_BYTES) break;
             s.memory.delete(k);

@@ -120,22 +120,23 @@ export function Header({ nav }: { nav: boolean }) {
     return movesHref(last?.campus === campus() ? last : { campus: campus(), from: '', to: '', move: '', promo: '', page: 1 });
   };
 
-  // your own promo with your row highlighted, like the first visit
+  // your own promo on your campus: the logo opens it at the top, "My rank" at your row
+  // (highlighted, like the first visit)
+  const home = me ? rankHref({ campus: defaultCampus, promo: me.promo || '', coal: 0, status: 'active', page: 1 }) : '/';
   const myRank = () => {
     if (!me) return;
-    const href = rankHref({ campus: defaultCampus, promo: me.promo || '', coal: 0, status: 'active', page: 1 });
-    memory.landing = href;
+    memory.landing = home;
     memory.scrollPending = true;
     setHighlight(me.login);
-    if (location.pathname === '/') go(href);
-    else router.push(href, { scroll: false });
+    if (location.pathname === '/') go(home);
+    else router.push(home, { scroll: false });
   };
 
   return (
     <header className="sticky top-4 z-50 mx-auto mt-4 mb-[18px] max-w-[1100px] px-4">
       <div className="flex h-[56px] items-center justify-between gap-4 rounded-[16px] border border-[#e5e5e5] bg-white/75 px-4 backdrop-blur-[16px] phone:px-3">
         <div className="flex min-w-0 items-center gap-6 phone:gap-2">
-          <Link href="/" scroll={false} aria-label="Peerboard" className="hover:no-underline">
+          <Link href={home} scroll={false} onClick={() => scrollTo(0, 0)} aria-label="Peerboard" className="hover:no-underline">
             <Logo compact={nav} />
           </Link>
           {nav && (

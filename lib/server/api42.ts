@@ -1,5 +1,4 @@
 import 'server-only';
-import { AsyncLocalStorage } from 'node:async_hooks';
 import { API, FT_SECRET, FT_UID } from './config';
 import { once } from './once';
 
@@ -30,27 +29,22 @@ async function fetchToken() {
 export const bearer = async () => `Bearer ${await getToken()}`;
 
 // --- rate-limited GET (app limit is 2 req/s) -----------------------------
-// work nobody is waiting on (warmups, refreshing old data) runs inside later() and
-// only gets a turn when no call for someone looking at the page is queued
-const background = once('background', () => new AsyncLocalStorage<boolean>());
-export const later = <T>(fn: () => T): T => background.run(true, fn);
-
-const lane = once('lane', () => ({ last: 0, busy: false, queue: [] as (() => void)[], idle: [] as (() => void)[] }));
+const lane = once('lane', () => ({ last: 0, busy: false, queue: [] as (() => void)[] }));
 
 function throttle() {
   return new Promise<void>((resolve) => {
-    (background.getStore() ? lane.idle : lane.queue).push(resolve);
+    lane.queue.push(resolve);
     if (!lane.busy) drain();
   });
 }
 
 async function drain() {
   lane.busy = true;
-  while (lane.queue.length || lane.idle.length) {
+  while (lane.queue.length) {
     const wait = lane.last + 550 - Date.now();
     if (wait > 0) await new Promise((r) => setTimeout(r, wait));
     lane.last = Date.now();
-    (lane.queue.shift() ?? lane.idle.shift())?.();
+    lane.queue.shift()!();
   }
   lane.busy = false;
 }

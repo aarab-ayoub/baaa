@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { SWRConfig } from 'swr';
 import { Header } from '@/components/header';
 import { LoginScreen } from '@/components/login-screen';
+import { ScrollTop } from '@/components/ui/scroll-top';
 import { fetcher } from '@/lib/client/fetcher';
 import { memory } from '@/lib/client/memory';
 import type { Me } from '@/lib/types';
@@ -27,12 +28,13 @@ export function useApp() {
 }
 
 // what every page shares: who's logged in, the header, the login screen, and how data is fetched
-export function AppShell({ me, required, children }: { me: Me | null; required: boolean; children: ReactNode }) {
+export function AppShell({ me, children }: { me: Me | null; children: ReactNode }) {
   const router = useRouter();
   const params = useSearchParams();
   const [ended, setEnded] = useState(false);
   const [highlight, setHighlight] = useState<string | null>(null);
-  const locked = ended || (required && !me);
+  // nothing about anyone shows before you've logged in with 42
+  const locked = ended || !me;
 
   // once, when the page opens
   useEffect(() => {
@@ -49,6 +51,7 @@ export function AppShell({ me, required, children }: { me: Me | null; required: 
       <SWRConfig value={{ fetcher, dedupingInterval: FRESH_MS, revalidateOnFocus: false, revalidateOnReconnect: false, shouldRetryOnError: false }}>
         <Header nav={!locked} />
         <main className="mx-auto max-w-[900px] px-4 pb-[40px]">{locked ? <LoginScreen text={text} /> : children}</main>
+        <ScrollTop />
       </SWRConfig>
     </AppContext>
   );

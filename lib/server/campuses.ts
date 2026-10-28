@@ -24,5 +24,5 @@ export function campuses() {
 export async function campusId(param: string) {
   if (!/^\d{1,5}$/.test(param)) return null;
   const id = Number(param);
-  return (await campuses()).value.some((c) => c.id === id) ? id : null;
+  return (await campuses()).some((c) => c.id === id) ? id : null;
 }

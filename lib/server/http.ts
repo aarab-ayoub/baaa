@@ -1,33 +1,37 @@
 import 'server-only';
 import type { NextRequest } from 'next/server';
-import { REQUIRE_LOGIN } from './config';
+import { SECURE } from './config';
 import { getSession } from './sessions';
 
+// nothing about students stays behind in a browser or in a cache on the way: the page
+// keeps what it needs in memory while it's open, and that's all
+const NO_STORE = { 'Cache-Control': 'no-store' };
+
 export function fail(status: number, error: string) {
-  return Response.json({ error }, { status, headers: { 'Cache-Control': 'no-store' } });
+  return Response.json({ error }, { status, headers: NO_STORE });
 }
 
-type Sendable = { body: string | Uint8Array<ArrayBuffer>; gz?: Uint8Array<ArrayBuffer>; etag: string };
-
-// a cached body with its etag, or a 304 when the browser already has it. next doesn't
-// compress route responses, so json goes out pre-gzipped (photos are compressed already)
-export function send(req: Request, entry: Sendable, type: string, cacheControl = 'no-cache') {
-  const headers: Record<string, string> = { 'Content-Type': type, ETag: entry.etag, 'Cache-Control': cacheControl, Vary: 'Accept-Encoding' };
-  if (req.headers.get('if-none-match') === entry.etag) return new Response(null, { status: 304, headers });
-  const gzip = entry.gz && /\bgzip\b/.test(req.headers.get('accept-encoding') || '');
-  if (gzip) headers['Content-Encoding'] = 'gzip';
-  return new Response(req.method === 'HEAD' ? null : gzip ? entry.gz : entry.body, { headers });
-}
+export const send = (data: unknown) => Response.json(data, { headers: NO_STORE });
 
 export function redirect(to: string, cookies: string[] = []) {
-  const headers = new Headers({ Location: to, 'Cache-Control': 'no-store' });
+  const headers = new Headers({ Location: to, ...NO_STORE });
   for (const c of cookies) headers.append('Set-Cookie', c);
   return new Response(null, { status: 302, headers });
 }
 
-export const cookie = (name: string, value: string, maxAge: number) => `${name}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`;
+export const cookie = (name: string, value: string, maxAge: number) =>
+  `${name}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${SECURE ? '; Secure' : ''}`;
 
 export const sessionOf = (req: NextRequest) => getSession(req.cookies.get('sid')?.value);
+
+// a no from deep inside, like an hourly limit: the route answers with its status
+export class Refused extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
 
 type Context<P> = { params: Promise<P> };
 
@@ -35,10 +39,11 @@ type Context<P> = { params: Promise<P> };
 // 42 api becomes a 502 instead of an error page
 export function apiRoute<P = object>(handle: (req: NextRequest, ctx: Context<P>) => Promise<Response>) {
   return async (req: NextRequest, ctx: Context<P>) => {
-    if (REQUIRE_LOGIN && !sessionOf(req)) return fail(401, 'login required');
+    if (!sessionOf(req)) return fail(401, 'login required');
     try {
       return await handle(req, ctx);
     } catch (e) {
+      if (e instanceof Refused) return fail(e.status, e.message);
       console.error((e as Error).message);
       return fail(502, '42 api unavailable, try again');
     }

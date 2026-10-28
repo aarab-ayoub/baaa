@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useReducer, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { useApp } from '@/components/app-shell';
@@ -31,18 +31,12 @@ const STATUSES = [
   { value: 'absorbed', label: 'Blackholed' },
 ];
 
-// filtered + ranked list. students arrive sorted by level; equal level = equal rank
+// filtered + ranked list. students arrive sorted by level, and alphabetically within a
+// level (lib/server/ranking.ts), so everyone gets a rank of their own
 function ranked(students: RankedStudent[], s: Pick<RankState, 'promo' | 'coal' | 'status'>) {
-  const out: Row[] = [];
-  let rank = 0;
-  for (const u of students) {
-    if (s.promo && u.promo !== s.promo) continue;
-    if (s.coal && u.coal !== s.coal) continue;
-    if ((s.status === 'absorbed') !== !!u.bh) continue;
-    if (!out.length || u.level !== out[out.length - 1].u.level) rank = out.length + 1;
-    out.push({ u, rank });
-  }
-  return out;
+  return students
+    .filter((u) => (!s.promo || u.promo === s.promo) && (!s.coal || u.coal === s.coal) && (s.status === 'absorbed') === !!u.bh)
+    .map((u, i): Row => ({ u, rank: i + 1 }));
 }
 
 export function RankingView() {
@@ -55,8 +49,6 @@ export function RankingView() {
   const { data: raw, error } = useSWR<Ranking>(`/api/ranking/${s.campus}`);
   const [query, setQuery] = useState(memory.rankQuery);
   const [view, setView] = useListView();
-  const [notice, setNotice] = useState<{ text: string; at: string } | null>(null);
-  const [, redraw] = useReducer((n: number) => n + 1, 0);
 
   const data = useMemo(() => {
     if (!raw) return null;
@@ -68,7 +60,10 @@ export function RankingView() {
     };
   }, [raw]);
   const all = useMemo(() => (data ? ranked(data.students, s) : []), [data, s.promo, s.coal, s.status]);
-  const pages = Math.max(1, Math.ceil(all.length / PER_PAGE));
+  // the search narrows the list as you type; everyone keeps their rank among the filters
+  const q = query.trim().toLowerCase();
+  const found = q ? all.filter((r) => r.u.login.includes(q) || r.u.name.toLowerCase().includes(q)) : all;
+  const pages = Math.max(1, Math.ceil(found.length / PER_PAGE));
   const page = Math.min(s.page, pages);
 
   useEffect(() => {
@@ -93,6 +88,7 @@ export function RankingView() {
   useEffect(() => {
     if (!data || !memory.scrollPending) return;
     if (memory.landing && memory.landing !== here) return; // still on the way to your promo
+    if (q) return void setQuery((memory.rankQuery = '')); // a search could hide your row
     memory.landing = null;
     if (me && highlight === me.login && s.page === 1) {
       const i = all.findIndex((r) => r.u.login === me.login);
@@ -101,23 +97,6 @@ export function RankingView() {
     memory.scrollPending = false;
     document.querySelector('[data-hl]')?.scrollIntoView({ block: 'center' });
   });
-
-  function find(q: string) {
-    if (!data || !q) return;
-    const u = data.students.find((x) => x.login === q);
-    if (!u) return setNotice({ text: `No "${q}" on this campus.`, at: here });
-    let t: RankState = s;
-    let i = all.findIndex((r) => r.u === u);
-    if (i < 0) {
-      // not in this view: drop the filters that hide them
-      t = { ...s, promo: '', coal: 0, status: u.bh ? 'absorbed' : 'active' };
-      i = ranked(data.students, t).findIndex((r) => r.u === u);
-    }
-    setNotice(null);
-    setHighlight(q);
-    memory.scrollPending = true;
-    if (!go(rankHref({ ...t, page: Math.floor(i / PER_PAGE) + 1 }))) redraw();
-  }
 
   const columns: Column<Row>[] = [
     { head: '#', className: 'text-right tabular-nums', cellClassName: 'w-[40px] text-[#8a8a8a]', cell: (r) => String(r.rank) },
@@ -136,12 +115,11 @@ export function RankingView() {
   if (!s.promo) columns.push({ head: 'Promo', cell: (r) => r.u.promo });
   columns.push({ head: 'Level', className: 'text-right tabular-nums', cellClassName: 'font-semibold', cell: (r) => <LevelLink level={r.u.level} /> });
   const tone = (r: Row) => ({ hl: r.u.login === highlight, mine: me?.login === r.u.login, gone: !!r.u.bh });
-  const shown = all.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const shown = found.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   let text: string;
-  if (notice?.at === here) text = notice.text;
-  else if (!data) text = error ? 'Something went wrong: ' + error.message : 'Loading… the first time a campus opens it can take ~20s.';
-  else text = all.length ? `${all.length} student${all.length > 1 ? 's' : ''}` : 'Nobody here with these filters.';
+  if (!data) text = error ? 'Something went wrong: ' + error.message : 'Loading… the first time a campus opens it can take ~20s.';
+  else text = found.length ? `${found.length} student${found.length > 1 ? 's' : ''}` : 'Nobody here with these filters.';
 
   return (
     <section>
@@ -162,12 +140,15 @@ export function RankingView() {
           onChange={(k) => go(rankHref({ ...s, coal: Number(k) || 0, page: 1 }))}
         />
         <FilterSelect label="status" strong value={s.status} choices={STATUSES} onChange={(v) => go(rankHref({ ...s, status: v as RankState['status'], page: 1 }))} />
+        {/* the search narrows the list as you type */}
         <SearchBox
           label="search a login"
           placeholder="Search a login"
           value={query}
-          onChange={(v) => setQuery((memory.rankQuery = v))}
-          onSubmit={() => find(query.trim().toLowerCase())}
+          onChange={(v) => {
+            setQuery((memory.rankQuery = v));
+            if (s.page > 1) go(rankHref({ ...s, page: 1 }));
+          }}
         />
       </FilterBar>
       <StatusLine text={text} updated={data ? 'updated ' + clock(data.fetchedAt) : ''}>

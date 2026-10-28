@@ -1,13 +1,14 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-// only answer to our own host name: blocks DNS-rebinding tricks where a random
-// website points its domain at 127.0.0.1 to read this server from your browser
+// on your machine, only answer to its own host name: blocks DNS-rebinding tricks where a
+// random website points its domain at 127.0.0.1 to read this server from your browser.
+// vercel only ever hands us requests for the project's own domains
 const LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])(:\d{1,5})?$/;
 
 const fail = (status: number, error: string) => Response.json({ error }, { status, headers: { 'Cache-Control': 'no-store' } });
 
 export function proxy(request: NextRequest) {
-  if (!LOCAL.test(request.headers.get('host') ?? '')) return fail(421, 'bad host');
+  if (!process.env.VERCEL && !LOCAL.test(request.headers.get('host') ?? '')) return fail(421, 'bad host');
   const { pathname, search } = request.nextUrl;
   if (pathname.length + search.length > 2000) return fail(414, 'url too long');
   // the page only ever calls its own api, so refuse other sites' scripts

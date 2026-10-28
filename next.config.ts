@@ -20,6 +20,9 @@ const nextConfig: NextConfig = {
     // the build cache once kept an old @theme and dropped new color classes; a full
     // build of this app takes ~2s, so it isn't worth it
     turbopackFileSystemCacheForBuild: false,
+    // next's data cache (lib/server/cache.ts) stays in memory when we run it ourselves:
+    // student data is never written to disk. on vercel it's vercel's data cache instead
+    isrFlushToDisk: false,
   },
   turbopack: {
     rules: {

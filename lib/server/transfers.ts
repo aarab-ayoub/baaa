@@ -1,10 +1,9 @@
 import 'server-only';
 import type { Move, Transfers } from '@/lib/types';
 import { getAll } from './api42';
-import { cached, pack, type Entry } from './cache';
+import { cached } from './cache';
 import { campuses } from './campuses';
 import { CURSUS } from './config';
-import { once } from './once';
 import { isStudent, student, type CursusUser } from './students';
 
 // the api has no transfer object: changing campus adds a campus_users row for the new
@@ -12,8 +11,8 @@ import { isStudent, student, type CursusUser } from './students';
 // before the cursus even started are piscine leftovers (rabat's first promo got a
 // benguerir or khouribga row that way), so only a campus joined after the start counts.
 // only people with a second campus can have moved, and the whole network has a few
-// thousand of them, so one list covers every campus: ~100 calls to build, done in the
-// background and kept on disk, and a campus's transfers are a filter over it (instant)
+// thousand of them, so one list covers every campus: ~100 calls to build, kept in the data
+// cache for an hour, and a campus's transfers are a filter over it (instant)
 const TRANSFERS_MS = 60 * 60 * 1000; // nobody changes campus by the minute
 const AFTER_START_MS = 30 * 24 * 60 * 60 * 1000;
 // the api takes long id lists, but every page after the first repeats the whole url in
@@ -51,7 +50,7 @@ export function allMoves() {
   return cached(
     'transfers',
     async (): Promise<Transfers> => {
-      const known = new Set((await campuses()).value.map((c) => c.id));
+      const known = new Set((await campuses()).map((c) => c.id));
       const rows = new Map<number, CampusUser[]>(); // user id -> their campus_users rows
       for (const r of await getAll<CampusUser>('/v2/campus_users?filter[is_primary]=false')) {
         if (!rows.has(r.user_id)) rows.set(r.user_id, []);
@@ -75,15 +74,8 @@ export function allMoves() {
   );
 }
 
-// one campus's share of that list, packed once per version of it
-const views = once('campusMoves', () => new Map<number, { of: Entry<Transfers>; entry: Entry<Transfers> }>());
-
-export async function transfers(campusId: number) {
+// one campus's share of that list
+export async function transfers(campusId: number): Promise<Transfers> {
   const all = await allMoves();
-  const hit = views.get(campusId);
-  if (hit?.of === all) return hit.entry;
-  const students = all.value.students.filter((s) => s.from === campusId || s.to === campusId);
-  const entry = pack({ fetchedAt: all.value.fetchedAt, students });
-  views.set(campusId, { of: all, entry });
-  return entry;
+  return { fetchedAt: all.fetchedAt, students: all.students.filter((s) => s.from === campusId || s.to === campusId) };
 }
