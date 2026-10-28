@@ -15,6 +15,7 @@ import { FilterBar } from '@/components/ui/filter-bar';
 import { FilterSelect, type ChoiceGroup } from '@/components/ui/filter-select';
 import { Pager } from '@/components/ui/pager';
 import { SearchBox } from '@/components/ui/search-box';
+import { Bone, StudentBone } from '@/components/ui/skeleton';
 import { StatusLine } from '@/components/ui/status-line';
 import { ViewToggle } from '@/components/ui/view-toggle';
 import { COUNTRY_CODES, countryName, flag } from '@/lib/countries';
@@ -84,20 +85,20 @@ export function TransfersView() {
   const page = Math.min(s.page, pages);
 
   const columns: Column<Move>[] = [
-    { head: 'Student', cell: (u) => <StudentCell u={u} /> },
-    { head: 'Transfer', cell: (u) => <TripCell from={byId.get(u.from)} to={byId.get(u.to)} /> },
+    { head: 'Student', cell: (u) => <StudentCell u={u} />, bone: <StudentBone /> },
+    { head: 'Transfer', cell: (u) => <TripCell from={byId.get(u.from)} to={byId.get(u.to)} />, bone: <Bone className="h-[13px] w-[170px] phone:w-[90px]" /> },
   ];
-  if (!s.promo) columns.push({ head: 'Promo', className: 'phone:hidden', cell: (u) => u.promo });
+  if (!s.promo) columns.push({ head: 'Promo', className: 'phone:hidden', cell: (u) => u.promo, bone: <Bone className="h-[13px] w-[38px]" /> });
   columns.push(
-    { head: 'Level', className: 'text-right tabular-nums phone:hidden', cellClassName: 'font-semibold', cell: (u) => <LevelLink level={u.level} /> },
-    { head: 'Status', cell: (u) => <MoveCell m={u} /> },
-    { head: 'Date', className: 'phone:hidden', cell: (u) => <MoveDate m={u} /> }
+    { head: 'Level', className: 'text-right tabular-nums phone:hidden', cellClassName: 'font-semibold', cell: (u) => <LevelLink level={u.level} />, bone: <Bone className="h-[13px] w-[40px]" /> },
+    { head: 'Status', cell: (u) => <MoveCell m={u} />, bone: <Bone className="h-[13px] w-[74px]" /> },
+    { head: 'Date', className: 'phone:hidden', cell: (u) => <MoveDate m={u} />, bone: <Bone className="h-[13px] w-[56px]" /> }
   );
   const tone = (u: Move) => ({ hl: u.login === highlight, mine: me?.login === u.login, gone: !!u.bh });
   const shown = all.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
-  let text: string;
-  if (!data) text = error ? 'Something went wrong: ' + error.message : 'Loading…';
+  let text: string | null = null; // a grey bar until the list is here
+  if (!data) text = error ? 'Something went wrong: ' + error.message : null;
   else if (all.length) text = `${all.length} student${all.length > 1 ? 's' : ''}`;
   else text = data.students.length ? 'Nobody here with these filters.' : 'Nobody is moving to or from this campus.';
 
@@ -107,16 +108,17 @@ export function TransfersView() {
     <section>
       <FilterBar>
         <CampusSelect campuses={campuses} value={s.campus} onChange={(c) => set({ campus: c, from: '', to: '', move: '', promo: '' })} />
-        <FilterSelect label="origin" placeholder={data ? 'Origin' : undefined} value={s.from} groups={data ? places('from') : []} onChange={(f) => set({ from: f })} />
-        <FilterSelect label="destination" placeholder={data ? 'Destination' : undefined} value={s.to} groups={data ? places('to') : []} onChange={(t) => set({ to: t })} />
+        <FilterSelect label="origin" loading={!data} placeholder="Origin" value={s.from} groups={data ? places('from') : []} onChange={(f) => set({ from: f })} />
+        <FilterSelect label="destination" loading={!data} placeholder="Destination" value={s.to} groups={data ? places('to') : []} onChange={(t) => set({ to: t })} />
         <FilterSelect
           label="status"
-          placeholder={data ? 'Status' : undefined}
+          loading={!data}
+          placeholder="Status"
           value={s.move}
           choices={data ? (Object.keys(MOVES) as MoveStatus[]).map((k) => ({ value: k, label: `${MOVES[k][0]} (${byStatus.filter((u) => u.status === k).length})` })) : []}
           onChange={(m) => set({ move: m as MovesState['move'] })}
         />
-        <FilterSelect label="promo" placeholder={data ? 'Promo' : undefined} value={s.promo} choices={promos.map((y) => ({ value: y, label: y }))} onChange={(y) => set({ promo: y })} />
+        <FilterSelect label="promo" loading={!data} placeholder="Promo" value={s.promo} choices={promos.map((y) => ({ value: y, label: y }))} onChange={(y) => set({ promo: y })} />
         {/* the search narrows the list as you type */}
         <SearchBox
           label="search a login"
@@ -131,8 +133,10 @@ export function TransfersView() {
       <StatusLine text={text}>
         <ViewToggle view={view} onChange={setView} />
       </StatusLine>
-      {data && view === 'cards' && (
+      {view === 'cards' && (
         <CardGrid
+          more={data || error ? 0 : 8}
+          footer
           rows={shown}
           rowKey={(u) => u.login}
           tone={tone}
@@ -146,9 +150,9 @@ export function TransfersView() {
           )}
         />
       )}
-      {data && view === 'table' && (
+      {view === 'table' && (
         <div className="overflow-x-auto">
-          <DataTable columns={columns} rows={shown} rowKey={(u) => u.login} tone={tone} />
+          <DataTable columns={columns} rows={shown} rowKey={(u) => u.login} tone={tone} more={data || error ? 0 : 10} />
         </div>
       )}
       <Pager page={page} pages={data ? pages : 1} href={(n) => movesHref({ ...s, page: n })} />

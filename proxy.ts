@@ -11,10 +11,6 @@ export function proxy(request: NextRequest) {
   if (!process.env.VERCEL && !LOCAL.test(request.headers.get('host') ?? '')) return fail(421, 'bad host');
   const { pathname, search } = request.nextUrl;
   if (pathname.length + search.length > 2000) return fail(414, 'url too long');
-  // the page only ever calls its own api, so refuse other sites' scripts
-  const site = request.headers.get('sec-fetch-site');
-  if (site && site !== 'same-origin' && site !== 'none' && /^\/(api|img)\//.test(pathname)) return fail(403, 'forbidden');
-
   // strict: no inline code except next's own (marked with this request's nonce), no
   // eval, nothing loaded from anywhere but this server
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
@@ -38,4 +34,6 @@ export function proxy(request: NextRequest) {
   return response;
 }
 
-export const config = { matcher: ['/((?!_next/static|_next/image).*)'] };
+// pages only: the api and photo routes do their own checks (lib/server/http.ts), and files
+// like the icons need no content security policy
+export const config = { matcher: ['/((?!api/|img/|auth/|_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|robots.txt).*)'] };

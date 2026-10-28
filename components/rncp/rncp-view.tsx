@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { CategoryCard } from '@/components/rncp/category-card';
 import { Bar, PlanButton, Verdict } from '@/components/rncp/parts';
+import { Bone } from '@/components/ui/skeleton';
 import { StatusLine } from '@/components/ui/status-line';
 import { memory } from '@/lib/client/memory';
 import { go } from '@/lib/client/nav';
@@ -17,6 +18,55 @@ const PICK = 'min-w-0 rounded-full border border-[#e3e3e3] bg-white px-4 py-[9px
 const PICK_ON = 'border-ink bg-ink text-white hover:text-white';
 // every category side by side on a wide screen, two per row on a tablet, one on a phone
 const COLUMNS: Record<number, string> = { 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4', 5: 'lg:grid-cols-5' };
+
+// the page in grey while your record is on its way: the four requirements, then a card per
+// category with its rows
+function RncpBones({ cards }: { cards: number }) {
+  return (
+    <div aria-hidden="true">
+      <div className="mb-3 grid gap-px overflow-hidden rounded-[14px] border border-[#ececec] bg-[#f0f0f0] lg:grid-cols-2">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} className="flex items-center gap-4 bg-white px-4 py-3">
+            <span className="flex w-[170px] flex-none flex-col gap-[7px] phone:w-auto phone:flex-1">
+              <Bone className="h-[14px] w-[88px]" />
+              <Bone className="h-[11px] w-[130px]" />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col gap-[9px] phone:hidden">
+              <Bone className="h-[14px] w-[70px]" />
+              <Bone className="h-[6px] w-full rounded-full" />
+            </span>
+            <Bone className="h-[22px] w-[38px] rounded-full" />
+          </div>
+        ))}
+      </div>
+      <div className={cn('grid grid-cols-2 gap-3 phone:grid-cols-1', COLUMNS[cards])}>
+        {Array.from({ length: cards }, (_, i) => (
+          <div key={i} className="min-w-0 rounded-[14px] border border-[#ececec] bg-white">
+            <div className="flex flex-col gap-[8px] px-3 pt-3 pb-3">
+              <span className="flex items-center justify-between">
+                <Bone className="h-[16px] w-[100px]" />
+                <Bone className="h-[22px] w-[36px] rounded-full" />
+              </span>
+              <Bone className="h-[11px] w-[120px]" />
+              <Bone className="h-[11px] w-[90px]" />
+              <Bone className="mt-1 h-[6px] w-full rounded-full" />
+            </div>
+            <div className="border-t border-[#f0f0f0]">
+              {Array.from({ length: 8 }, (_, j) => (
+                <span key={j} className="flex min-h-[36px] items-center gap-[6px] border-b border-[#f5f5f5] px-3 last:border-b-0">
+                  <Bone className="size-[7px] flex-none rounded-full" />
+                  <Bone className="h-[12px] flex-1" />
+                  <Bone className="h-[12px] w-[42px] flex-none" />
+                  <Bone className="size-[22px] flex-none rounded-full" />
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // one line of the general requirements
 function Requirement({ label, note, value, ok, withPlan, children }: { label: string; note: string; value: ReactNode; ok: boolean; withPlan: boolean; children?: ReactNode }) {
@@ -80,7 +130,8 @@ export function RncpView() {
     return (
       <section>
         {pickers}
-        <StatusLine text={error ? 'Something went wrong: ' + error.message : 'Loading your record…'} />
+        <StatusLine text={error ? 'Something went wrong: ' + error.message : null} />
+        {!error && <RncpBones cards={track.categories.length + 2} />}
       </section>
     );
   }

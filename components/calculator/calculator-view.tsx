@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { useApp } from '@/components/app-shell';
+import { Bone } from '@/components/ui/skeleton';
 import { fetcher } from '@/lib/client/fetcher';
 import { memory } from '@/lib/client/memory';
 import type { Project } from '@/lib/types';
@@ -109,7 +110,7 @@ export function CalculatorView() {
   const nowPct = start >= lo ? pct(start) : 0;
   const endPct = pct(endXp);
 
-  const addMsg = error ? 'Could not load projects: ' + error.message : projects ? '' : 'Loading projects…';
+  const addMsg = error ? 'Could not load projects: ' + error.message : '';
 
   return (
     <section>
@@ -184,7 +185,7 @@ export function CalculatorView() {
           <BonusToggle on={bonus} onChange={setBonus} />
         </div>
       </div>
-      <p className={cn(SMALL, 'mt-[4px] mb-[10px]')}>{addMsg}</p>
+      <p className={cn(SMALL, 'mt-[4px] mb-[10px]')}>{projects || error ? addMsg : <Bone className="h-[11px] w-[120px]" />}</p>
 
       <PickedList
         picked={picked}

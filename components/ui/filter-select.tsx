@@ -1,3 +1,4 @@
+import { Bone } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 export type Choice = { value: string; label: string };
@@ -14,6 +15,7 @@ export function FilterSelect({
   choices = [],
   groups = [],
   strong,
+  loading,
   onChange,
 }: {
   label: string;
@@ -22,8 +24,10 @@ export function FilterSelect({
   choices?: Choice[];
   groups?: ChoiceGroup[];
   strong?: boolean;
+  loading?: boolean; // its choices aren't there yet: a grey box in its place
   onChange: (value: string) => void;
 }) {
+  if (loading) return <Bone className="h-[36px] w-[118px] rounded-[8px]" />;
   const option = (c: Choice) => (
     <option key={c.value} value={c.value}>
       {c.label}

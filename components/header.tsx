@@ -1,11 +1,12 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { preload } from 'swr';
 import { useApp } from '@/components/app-shell';
 import { Logo } from '@/components/logo';
 import { Avatar } from '@/components/ui/avatar';
+import { fetcher } from '@/lib/client/fetcher';
 import { memory } from '@/lib/client/memory';
 import { go } from '@/lib/client/nav';
 import { movesHref, rankHref } from '@/lib/url-state';
@@ -17,13 +18,25 @@ const CTA =
   'shadow-[inset_0_1px_2px_rgba(255,255,255,.35),0_3px_3px_-1.5px_rgba(16,24,40,.06),0_1px_1px_rgba(16,24,40,.08)] transition-[filter] hover:brightness-95 hover:no-underline';
 const ITEM = 'block w-full rounded-[8px] border-0 bg-transparent px-3 py-2 text-left text-[14px] text-[#1a1a1a] hover:bg-[#f3f3f3]';
 
-// a tab; the one you're on sits in a light green pill
-function Tab({ on, href, onClick, children }: { on: boolean; href: string; onClick?: (e: React.MouseEvent) => void; children: ReactNode }) {
+// a plain click on a link that switches the view in the page: no trip to the server (every
+// view is already here), back at the top. a click with a modifier still opens a new tab
+const switchTo = (to: () => string) => (e: React.MouseEvent) => {
+  if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  go(to());
+  scrollTo(0, 0);
+};
+
+// a tab; the one you're on sits in a light green pill. pointing at it (or touching it)
+// already fetches what it shows, so it's usually there by the time you click
+function Tab({ on, href, onClick, onIntent, children }: { on: boolean; href: string; onClick: (e: React.MouseEvent) => void; onIntent?: () => void; children: ReactNode }) {
   return (
-    <Link
+    <a
       href={href}
-      scroll={false}
       onClick={onClick}
+      onMouseEnter={onIntent}
+      onFocus={onIntent}
+      onTouchStart={onIntent}
       aria-current={on ? 'page' : undefined}
       className={cn(
         'rounded-full px-3 py-[6px] whitespace-nowrap text-[#737373] transition-colors hover:bg-ink/5 hover:text-[#0a0a0a] hover:no-underline phone:px-[7px]',
@@ -31,7 +44,7 @@ function Tab({ on, href, onClick, children }: { on: boolean; href: string; onCli
       )}
     >
       {children}
-    </Link>
+    </a>
   );
 }
 
@@ -99,17 +112,11 @@ function UserMenu({ onMyRank }: { onMyRank: () => void }) {
 // the floating bar: logo and the three views on the left, your account on the right
 export function Header({ nav }: { nav: boolean }) {
   const pathname = usePathname();
-  const router = useRouter();
   const { me, defaultCampus, setHighlight } = useApp();
   const view = pathname.startsWith('/transfers') ? 'transfers' : pathname.startsWith('/calculator') ? 'calc' : pathname.startsWith('/rncp') ? 'rncp' : 'rank';
 
   // the ranking and the transfers open on the campus on screen; each gets its own
   // filters back only when that's the campus they were left on
-  const open = (to: () => string) => (e: React.MouseEvent) => {
-    e.preventDefault();
-    const href = to();
-    if (href !== location.pathname + location.search) router.push(href, { scroll: false });
-  };
   const campus = () => memory.shownCampus || defaultCampus;
   const ranking = () => {
     const last = memory.lastRank;
@@ -128,31 +135,39 @@ export function Header({ nav }: { nav: boolean }) {
     memory.landing = home;
     memory.scrollPending = true;
     setHighlight(me.login);
-    if (location.pathname === '/') go(home);
-    else router.push(home, { scroll: false });
+    go(home);
+  };
+  // what each tab shows, fetched ahead (the calculator's code too)
+  const ahead = {
+    transfers: () => preload(`/api/transfers/${campus()}`, fetcher),
+    calc: () => {
+      preload('/api/projects', fetcher);
+      import('@/components/calculator/calculator-view');
+    },
+    rncp: () => preload('/api/rncp', fetcher),
   };
 
   return (
     <header className="sticky top-4 z-50 mx-auto mt-4 mb-[18px] max-w-[1100px] px-4">
       <div className="flex h-[56px] items-center justify-between gap-4 rounded-[16px] border border-[#e5e5e5] bg-white/75 px-4 backdrop-blur-[16px] phone:gap-2 phone:px-3">
         <div className="flex min-w-0 items-center gap-6 phone:gap-2">
-          <Link href={home} scroll={false} onClick={() => scrollTo(0, 0)} aria-label="Peerboard" className="hover:no-underline">
+          <a href={home} onClick={switchTo(() => home)} aria-label="Peerboard" className="hover:no-underline">
             <Logo compact={nav} />
-          </Link>
+          </a>
           {nav && (
             // four tabs on a phone: short names, and they scroll rather than run under your photo
             <nav className="flex min-w-0 items-center gap-1 text-[14px] font-medium phone:gap-0 phone:overflow-x-auto phone:text-[13px] phone:[scrollbar-width:none]">
-              <Tab on={view === 'rank'} href="/" onClick={open(ranking)}>
+              <Tab on={view === 'rank'} href="/" onClick={switchTo(ranking)}>
                 Ranking
               </Tab>
-              <Tab on={view === 'transfers'} href="/transfers" onClick={open(transfers)}>
+              <Tab on={view === 'transfers'} href="/transfers" onClick={switchTo(transfers)} onIntent={ahead.transfers}>
                 Transfers
               </Tab>
-              <Tab on={view === 'calc'} href="/calculator">
+              <Tab on={view === 'calc'} href="/calculator" onClick={switchTo(() => '/calculator')} onIntent={ahead.calc}>
                 <span className="phone:hidden">Calculator</span>
                 <span className="hidden phone:inline">Calc</span>
               </Tab>
-              <Tab on={view === 'rncp'} href="/rncp">
+              <Tab on={view === 'rncp'} href="/rncp" onClick={switchTo(() => '/rncp' + (memory.rncpTrack ? `?t=${memory.rncpTrack}` : ''))} onIntent={ahead.rncp}>
                 RNCP
               </Tab>
             </nav>

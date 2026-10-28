@@ -12,5 +12,5 @@ export function CampusSelect({ campuses, value, onChange }: { campuses?: Campus[
     }
     return out;
   }, [campuses]);
-  return <FilterSelect label="campus" strong value={value} groups={groups} onChange={onChange} />;
+  return <FilterSelect label="campus" strong loading={!campuses} value={value} groups={groups} onChange={onChange} />;
 }

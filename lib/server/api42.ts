@@ -1,4 +1,5 @@
 import 'server-only';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { API, FT_SECRET, FT_UID } from './config';
 import { once } from './once';
 
@@ -29,24 +30,28 @@ async function fetchToken() {
 export const bearer = async () => `Bearer ${await getToken()}`;
 
 // --- rate-limited GET (app limit is 2 req/s) -----------------------------
-// a call someone is waiting on right now (urgent) goes before work that can wait, like a
-// campus or the transfers being fetched again in the background
-const lane = once('lane', () => ({ last: 0, busy: false, urgent: [] as (() => void)[], queue: [] as (() => void)[] }));
+// a call someone is waiting on right now (urgent) goes first, then the rest of what
+// people wait for, then work nobody waits on: data fetched again in the background or
+// ahead of time, which runs inside later()
+const background = once('background', () => new AsyncLocalStorage<boolean>());
+export const later = <T>(fn: () => T): T => background.run(true, fn);
+
+const lane = once('lane', () => ({ last: 0, busy: false, urgent: [] as (() => void)[], queue: [] as (() => void)[], idle: [] as (() => void)[] }));
 
 function throttle(urgent: boolean) {
   return new Promise<void>((resolve) => {
-    (urgent ? lane.urgent : lane.queue).push(resolve);
+    (urgent ? lane.urgent : background.getStore() ? lane.idle : lane.queue).push(resolve);
     if (!lane.busy) drain();
   });
 }
 
 async function drain() {
   lane.busy = true;
-  while (lane.urgent.length || lane.queue.length) {
+  while (lane.urgent.length || lane.queue.length || lane.idle.length) {
     const wait = lane.last + 550 - Date.now();
     if (wait > 0) await new Promise((r) => setTimeout(r, wait));
     lane.last = Date.now();
-    (lane.urgent.shift() ?? lane.queue.shift())!();
+    (lane.urgent.shift() ?? lane.queue.shift() ?? lane.idle.shift())!();
   }
   lane.busy = false;
 }

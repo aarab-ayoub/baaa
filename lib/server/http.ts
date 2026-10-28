@@ -35,10 +35,18 @@ export class Refused extends Error {
 
 type Context<P> = { params: Promise<P> };
 
-// an api route: student data is only for logged-in 42 students, and a failing
-// 42 api becomes a 502 instead of an error page
+// on your machine, only answer to its own host name: blocks DNS-rebinding tricks where a
+// random website points its domain at 127.0.0.1 to read this server from your browser.
+// vercel only ever hands us requests for the project's own domains
+const LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])(:\d{1,5})?$/;
+
+// an api route: student data is only for logged-in 42 students, only for our own page
+// (other sites' scripts are refused), and a failing 42 api becomes a 502, not an error page
 export function apiRoute<P = object>(handle: (req: NextRequest, ctx: Context<P>) => Promise<Response>) {
   return async (req: NextRequest, ctx: Context<P>) => {
+    if (!process.env.VERCEL && !LOCAL.test(req.headers.get('host') ?? '')) return fail(421, 'bad host');
+    const site = req.headers.get('sec-fetch-site');
+    if (site && site !== 'same-origin' && site !== 'none') return fail(403, 'forbidden');
     if (!sessionOf(req)) return fail(401, 'login required');
     try {
       return await handle(req, ctx);

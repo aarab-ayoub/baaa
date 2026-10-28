@@ -1,13 +1,14 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { SWRConfig } from 'swr';
 import { Header } from '@/components/header';
 import { LoginScreen } from '@/components/login-screen';
 import { ScrollTop } from '@/components/ui/scroll-top';
 import { fetcher } from '@/lib/client/fetcher';
 import { memory } from '@/lib/client/memory';
+import { go } from '@/lib/client/nav';
 import type { Me } from '@/lib/types';
 import { legacyHref } from '@/lib/url-state';
 import { cn } from '@/lib/utils';
@@ -30,7 +31,6 @@ export function useApp() {
 
 // what every page shares: who's logged in, the header, the login screen, and how data is fetched
 export function AppShell({ me, children }: { me: Me | null; children: ReactNode }) {
-  const router = useRouter();
   const params = useSearchParams();
   const pathname = usePathname();
   const [ended, setEnded] = useState(false);
@@ -42,8 +42,9 @@ export function AppShell({ me, children }: { me: Me | null; children: ReactNode 
   useEffect(() => {
     memory.onUnauthorized = () => setEnded(true);
     const old = location.hash && legacyHref(location.hash);
-    if (old) router.replace(old);
-    else if (!locked && params.has('login')) router.replace('/');
+    // a tick later: this early, next hasn't hooked into the history api yet
+    if (old) setTimeout(() => go(old, true));
+    else if (!locked && params.has('login')) setTimeout(() => go('/', true));
   }, []);
 
   const why = params.get('login');
