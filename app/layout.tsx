@@ -14,7 +14,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="en">
       <body>
         <AppShell me={me}>{children}</AppShell>
-        <Analytics />
+        {/* its script only exists on vercel: elsewhere it would just fail to load */}
+        {process.env.VERCEL && <Analytics />}
       </body>
     </html>
   );
