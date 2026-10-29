@@ -16,6 +16,7 @@ export function CardGrid<T>({ rows, rowKey, tone, card, more = 0, footer }: { ro
         return (
           <div
             key={rowKey(row)}
+            data-row={rowKey(row)}
             data-hl={t.hl || undefined}
             className={cn(
               CARD,

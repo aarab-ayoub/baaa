@@ -85,31 +85,44 @@ export function RankingView() {
     return () => clearTimeout(t);
   }, [data, partial, s.campus]);
 
-  // first visit: open your own promo with your row highlighted (once, when the page opens)
+  // first visit: your own promo, at your row (once, when the page opens)
   useEffect(() => {
     if (!memory.firstVisit) return;
     memory.firstVisit = false;
     if (!me) return;
     memory.landing = rankHref({ campus: defaultCampus, promo: me.promo || '', coal: 0, status: 'active', page: 1 });
-    memory.scrollPending = true;
-    setHighlight(me.login);
+    memory.seekMe = true;
     // a tick later: this early, next hasn't hooked into the history api yet
     setTimeout(() => go(memory.landing!, true));
   }, []);
 
-  // then bring the highlighted row into view, on the page it's on
+  // "My rank": your row in the list on screen if you're in it (any promo, coalition or
+  // search that includes you), on the page it's on; if you aren't, a search that hides you
+  // is cleared, then your own campus and promo are opened instead. then highlighted, in view
+  const goTo = (to: string) => {
+    memory.landing = to;
+    go(to);
+  };
+  // (every render: "My rank" re-renders this view through the app's `seek`)
   useEffect(() => {
-    if (!data || !memory.scrollPending) return;
-    if (memory.landing && memory.landing !== here) return; // still on the way to your promo
-    if (q) return void setQuery((memory.rankQuery = '')); // a search could hide your row
+    if (!memory.seekMe || !me || !data) return;
+    if (memory.landing && memory.landing !== here) return; // still on the way there
     memory.landing = null;
-    if (me && highlight === me.login && s.page === 1) {
-      const i = all.findIndex((r) => r.u.login === me.login);
-      if (i < 0 && partial) return; // your row hasn't come in yet
-      if (i >= PER_PAGE) return void go(rankHref({ ...s, page: Math.floor(i / PER_PAGE) + 1 }));
+    const i = found.findIndex((r) => r.u.login === me.login);
+    if (i < 0) {
+      if (partial) return; // you may not have come in yet
+      if (q) return void setQuery((memory.rankQuery = ''));
+      const mine = s.campus === defaultCampus ? data.students.find((u) => u.login === me.login) : undefined;
+      const yours = rankHref({ campus: defaultCampus, promo: me.promo || '', coal: 0, status: mine?.bh ? 'absorbed' : 'active', page: 1 });
+      if (yours === here) return void (memory.seekMe = false); // not in your campus's ranking at all
+      return goTo(yours);
     }
-    memory.scrollPending = false;
-    document.querySelector('[data-hl]')?.scrollIntoView({ block: 'center' });
+    const p = Math.floor(i / PER_PAGE) + 1;
+    if (p !== page) return goTo(rankHref({ ...s, page: p }));
+    memory.seekMe = false;
+    setHighlight(me.login);
+    // once the row is drawn highlighted
+    requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector(`[data-row="${CSS.escape(me.login)}"]`)?.scrollIntoView({ block: 'center' })));
   });
 
   const columns: Column<Row>[] = [

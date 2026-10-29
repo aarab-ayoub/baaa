@@ -12,8 +12,8 @@ export const memory = {
   ranking: null as { students: RankedStudent[]; order: Coalition[] } | null,
   // landed on the bare ranking url: open your own promo with your row highlighted
   firstVisit: typeof window !== 'undefined' && location.pathname === '/' && !location.search && !location.hash,
-  landing: null as string | null,
-  scrollPending: false,
+  landing: null as string | null, // a ranking we're on our way to: wait for it before looking
+  seekMe: false, // "My rank" asked: find your row
   level: null as number | null, // the calculator's current level
   rncpTrack: null as string | null, // the RNCP track looked at last
   rankQuery: '',

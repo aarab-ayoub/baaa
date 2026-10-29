@@ -18,8 +18,10 @@ import { FRESH_MS } from '@/lib/utils';
 type App = {
   me: Me | null; // the logged-in student
   defaultCampus: string;
-  highlight: string | null; // the row a search found
+  highlight: string | null; // the row to stand out: yours, after "My rank"
   setHighlight: (login: string | null) => void;
+  seek: number; // bumped by findMe(): the ranking looks for your row again
+  findMe: () => void;
 };
 
 const AppContext = createContext<App | null>(null);
@@ -36,6 +38,13 @@ export function AppShell({ me, children }: { me: Me | null; children: ReactNode 
   const pathname = usePathname();
   const [ended, setEnded] = useState(false);
   const [highlight, setHighlight] = useState<string | null>(null);
+  const [seek, setSeek] = useState(0);
+  // "My rank": even when nothing else changes (same page, row already highlighted), the
+  // ranking sees the request and goes to your row
+  const findMe = () => {
+    memory.seekMe = true;
+    setSeek((n) => n + 1);
+  };
   // nothing about anyone shows before you've logged in with 42
   const locked = ended || !me;
 
@@ -55,7 +64,7 @@ export function AppShell({ me, children }: { me: Me | null; children: ReactNode 
   else if (why === 'failed') text = "That didn't work, try again.";
   else if (why === 'denied') text = 'Peerboard is for 42 students and staff only.';
   return (
-    <AppContext value={{ me, defaultCampus: me?.campus ? String(me.campus) : '75', highlight, setHighlight }}>
+    <AppContext value={{ me, defaultCampus: me?.campus ? String(me.campus) : '75', highlight, setHighlight, seek, findMe }}>
       {/* a campus's data is kept for 10 minutes like before, and asked for again after */}
       <SWRConfig value={{ fetcher, dedupingInterval: FRESH_MS, revalidateOnFocus: false, revalidateOnReconnect: false, shouldRetryOnError: false }}>
         <Header nav={!locked} />

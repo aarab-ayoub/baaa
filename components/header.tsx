@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { preload } from 'swr';
 import { useApp } from '@/components/app-shell';
-import { LoginLink } from '@/components/login-link';
+import { LoginLink, Spinner } from '@/components/login-link';
 import { Logo } from '@/components/logo';
 import { Avatar } from '@/components/ui/avatar';
 import { fetcher } from '@/lib/client/fetcher';
@@ -53,9 +53,10 @@ function Tab({ on, href, onClick, onIntent, children }: { on: boolean; href: str
 function UserMenu({ onMyRank }: { onMyRank: () => void }) {
   const { me } = useApp();
   const [open, setOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!open) return;
+    if (!open || leaving) return; // logging out: the menu stays, with its spinner
     const close = (e: Event) => {
       if (e instanceof KeyboardEvent ? e.key === 'Escape' : !box.current?.contains(e.target as Node)) setOpen(false);
     };
@@ -65,10 +66,13 @@ function UserMenu({ onMyRank }: { onMyRank: () => void }) {
       removeEventListener('mousedown', close);
       removeEventListener('keydown', close);
     };
-  }, [open]);
+  }, [open, leaving]);
   if (!me) return null;
 
+  // a spinner at once, and further clicks do nothing
   const logout = async () => {
+    if (leaving) return;
+    setLeaving(true);
     // never more than 3s on this page, whatever the network does
     await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin', signal: AbortSignal.timeout(3000) }).catch(() => {});
     location.replace('/');
@@ -102,8 +106,15 @@ function UserMenu({ onMyRank }: { onMyRank: () => void }) {
           >
             My rank
           </button>
-          <button type="button" role="menuitem" className={ITEM} onClick={logout}>
-            Log out
+          <button type="button" role="menuitem" aria-busy={leaving || undefined} className={cn(ITEM, leaving && 'flex cursor-progress items-center gap-2 text-[#555] hover:bg-transparent')} onClick={logout}>
+            {leaving ? (
+              <>
+                <Spinner />
+                Logging out…
+              </>
+            ) : (
+              'Log out'
+            )}
           </button>
         </div>
       )}
@@ -114,7 +125,7 @@ function UserMenu({ onMyRank }: { onMyRank: () => void }) {
 // the floating bar: logo and the three views on the left, your account on the right
 export function Header({ nav }: { nav: boolean }) {
   const pathname = usePathname();
-  const { me, defaultCampus, setHighlight } = useApp();
+  const { me, defaultCampus, findMe } = useApp();
   const view = pathname.startsWith('/transfers') ? 'transfers' : pathname.startsWith('/calculator') ? 'calc' : pathname.startsWith('/rncp') ? 'rncp' : 'rank';
 
   // the ranking and the transfers open on the campus on screen; each gets its own
@@ -129,15 +140,17 @@ export function Header({ nav }: { nav: boolean }) {
     return movesHref(last?.campus === campus() ? last : { campus: campus(), from: '', to: '', move: '', promo: '', page: 1 });
   };
 
-  // your own promo on your campus: the logo opens it at the top, "My rank" at your row
-  // (highlighted, like the first visit)
+  // your own promo on your campus: the logo opens it at the top
   const home = me ? rankHref({ campus: defaultCampus, promo: me.promo || '', coal: 0, status: 'active', page: 1 }) : '/';
+  // "My rank": the ranking as you left it, at your row if you're in it, else your own promo
+  // (ranking-view.tsx decides)
   const myRank = () => {
     if (!me) return;
-    memory.landing = home;
-    memory.scrollPending = true;
-    setHighlight(me.login);
-    go(home);
+    if (location.pathname !== '/') {
+      memory.landing = ranking();
+      go(memory.landing);
+    }
+    findMe();
   };
   // what each tab shows, fetched ahead (the calculator's code too)
   const ahead = {

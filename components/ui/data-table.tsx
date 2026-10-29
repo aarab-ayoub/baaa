@@ -30,7 +30,7 @@ export function DataTable<T>({ columns, rows, rowKey, tone, more = 0 }: { column
         {rows.map((row) => {
           const t = tone?.(row) ?? {};
           return (
-            <tr key={rowKey(row)} data-hl={t.hl || undefined}>
+            <tr key={rowKey(row)} data-row={rowKey(row)} data-hl={t.hl || undefined}>
               {columns.map((c) => (
                 <td
                   key={c.head}
