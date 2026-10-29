@@ -1,100 +1,21 @@
+import official from '@/lib/rncp-official.json';
 import { levelToXp, xpToLevel } from '@/lib/xp';
 
-// the RNCP titles 42cursus leads to, as 42's articles "RNCP 6 certificate" and "RNCP 7
-// certificate" (meta.intra.42.fr) set them, checked on 26 October 2026 by 42calculator.fr
-// (lucas-ht/42calculator) and 42insight (fzphr/42insight, MIT). besides the level, the
-// events and two work experiences, a title wants every category of its track, one Suite
-// project, the common core, and two group projects after it
+// the RNCP titles 42cursus leads to, as 42's own checker sets them: gcc.42.fr ("Grand Cursus
+// Checker"), whose rules and project lists are in rncp-official.json (see its `source`). a
+// title wants its level, its events, 1 Suite project, 2 work experiences, 2 group projects,
+// and every category of its option: so many projects of the category's list validated, and
+// so much xp from the projects of its xp list (the piscines' modules among them)
 
 export type TrackId = 'web' | 'app' | 'sys' | 'data';
-export type Category = { name: string; xp: number; count: number; ids: number[] };
-export type Track = { id: TrackId; rncp: 6 | 7; name: string; short: string; level: number; events: number; experiences: number; categories: Category[] };
+// `ids`: the projects that count, a piscine as one (see PISCINES); `xpIds`: those whose xp counts
+export type Category = { name: string; count: number; xp: number; ids: number[]; xpIds: number[] };
+export type Track = { id: TrackId; rncp: 6 | 7; option: 1 | 2; name: string; short: string; level: number; events: number; categories: Category[] };
 
 export const TITLES = { 6: 'IT solutions designer and developer', 7: 'IT architecture expert' } as const;
 
-const WEB = [2199, 2189, 2179, 1396, 1401, 1402, 1428, 1405, 1429, 2485, 2600, 1427];
-
-export const TRACKS: Track[] = [
-  {
-    id: 'web',
-    rncp: 6,
-    name: 'Web and mobile application development',
-    short: 'Web and mobile',
-    level: 17,
-    events: 10,
-    experiences: 2,
-    categories: [
-      { name: 'Web', xp: 15000, count: 2, ids: WEB },
-      { name: 'Mobile', xp: 10000, count: 2, ids: [1379, 1395, 1406, 2355, 1427] },
-    ],
-  },
-  {
-    id: 'app',
-    rncp: 6,
-    name: 'Applicative software development',
-    short: 'Applicative',
-    level: 17,
-    events: 10,
-    experiences: 2,
-    categories: [
-      {
-        name: 'Object-oriented programming',
-        xp: 10000,
-        count: 2,
-        ids: [1389, 1386, 2199, 2189, 2179, 1396, 1401, 1402, 1428, 1405, 1429, 2355, 1379, 1395, 1406, 1435, 1436, 1437, 2364, 2550, 2371, 2749],
-      },
-      { name: 'Functional programming', xp: 10000, count: 2, ids: [2228, 1403, 1407, 1429] },
-      {
-        name: 'Imperative programming',
-        xp: 10000,
-        count: 2,
-        ids: [1330, 1463, 1411, 1415, 1416, 1381, 1388, 1468, 1469, 1420, 1466, 1467, 1464, 1425, 1424, 1840, 1451, 1405, 1404, 1417, 1448, 1446, 1447, 1419, 1430, 1443],
-      },
-    ],
-  },
-  {
-    id: 'sys',
-    rncp: 7,
-    name: 'Information systems and networks',
-    short: 'Systems and networks',
-    level: 21,
-    events: 15,
-    experiences: 2,
-    categories: [
-      {
-        name: 'Unix and kernel',
-        xp: 30000,
-        count: 2,
-        ids: [1467, 1468, 1463, 1330, 1411, 1415, 1469, 1466, 1416, 1381, 1388, 1420, 1464, 1425, 1424, 1426, 1431, 1432, 1438, 1439, 1440, 1441, 1442, 1421, 1422, 1423, 1456, 2749],
-      },
-      { name: 'System administration', xp: 50000, count: 3, ids: [1414, 2071, 2064, 1381, 1397, 1399, 1400, 2520, 2521, 2522, 2523, 2746, 2750, 2747] },
-      { name: 'Security', xp: 50000, count: 3, ids: [1430, 1443, 1404, 1840, 1451, 1405, 1417, 1448, 1446, 1447, 1419, 2346, 2393, 2395, 2527, 2529, 2097] },
-    ],
-  },
-  {
-    id: 'data',
-    rncp: 7,
-    name: 'Database architecture and data',
-    short: 'Databases and data',
-    level: 21,
-    events: 15,
-    experiences: 2,
-    categories: [
-      { name: 'Web and databases', xp: 50000, count: 2, ids: WEB },
-      { name: 'Artificial intelligence', xp: 70000, count: 3, ids: [2295, 1391, 1453, 1457, 2551, 1383, 1460, 1384, 1392, 2077, 2076, 2372, 2267] },
-    ],
-  },
-];
-
-export const SUITE: Category = { name: 'Suite', xp: 0, count: 1, ids: [1854, 1458, 2064, 1394, 1424, 1448, 1443, 1855, 1460, 2071] };
-// internships, work experiences and apprenticeships: each validated one counts once
-export const EXPERIENCES: Category = { name: 'Work experience', xp: 0, count: 2, ids: [1638, 1644, 1662, 1880, 1864, 1872, 2338, 2339, 2340, 2341] };
-// ft_transcendence closes the common core, the 2019 one and the December 2025 one
-export const CORE_END = 1337;
-// the core's own group projects, both generations: they never count as "after the core"
-export const CORE_GROUP = new Set([1315, 1326, 1331, 1332, 1336, 1337, 2688, 2701, 2702, 2703, 2706, 2725, 2726, 2727]);
-export const GROUP_PROJECTS = 2;
-// a piscine counts once its last module is validated, for the xp its modules gave
+// a piscine counts once its last module is validated, for the xp its modules gave: gcc lists
+// the last module among the projects that count, and the page shows the piscine in its place
 export const PISCINES: Record<number, { last: number; modules: number[] }> = {
   2179: { last: 2188, modules: [2180, 2181, 2182, 2183, 2184, 2185, 2186, 2187, 2188] },
   2189: { last: 2198, modules: [2190, 2191, 2192, 2193, 2194, 2195, 2196, 2197, 2198] },
@@ -106,24 +27,46 @@ export const PISCINES: Record<number, { last: number; modules: number[] }> = {
   2355: { last: 2360, modules: [2354, 2356, 2357, 2358, 2359, 2360] },
   2364: { last: 2370, modules: [2365, 2366, 2367, 2368, 2369, 2370] },
 };
+const PISCINE_OF = new Map(Object.entries(PISCINES).map(([id, p]) => [p.last, Number(id)]));
 
-// every project the page can show or plan
-export const RNCP_PROJECTS = new Set([
-  ...TRACKS.flatMap((t) => t.categories.flatMap((c) => c.ids)),
-  ...SUITE.ids,
-  ...EXPERIENCES.ids,
-  CORE_END,
-  ...Object.values(PISCINES).flatMap((p) => p.modules),
-]);
+type Official = { name: string; count: number; ids: number[]; xp?: number; xpIds?: number[] };
+const category = (c: Official): Category => ({ name: c.name, count: c.count, xp: c.xp ?? 0, ids: [...new Set(c.ids.map((id) => PISCINE_OF.get(id) ?? id))], xpIds: c.xpIds ?? [] });
+const levels = official.levels as Record<'6' | '7', number>;
+const events = official.events as unknown as Record<'6' | '7', number> & { kinds: string[] };
+const track = (id: TrackId, rncp: 6 | 7, option: 1 | 2, name: string, short: string): Track => ({
+  id,
+  rncp,
+  option,
+  name,
+  short,
+  level: levels[rncp],
+  events: events[rncp],
+  categories: (official.tracks as Record<TrackId, Official[]>)[id].map(category),
+});
 
-// what the page gets: the student's own record, and the projects it needs to know
+export const TRACKS: Track[] = [
+  track('web', 6, 1, 'Web and mobile application development', 'Web and mobile'),
+  track('app', 6, 2, 'Applicative software development', 'Applicative'),
+  track('sys', 7, 1, 'Information systems and networks', 'Systems and networks'),
+  track('data', 7, 2, 'Database architecture and data', 'Databases and data'),
+];
+export const SUITE = category(official.suite);
+export const WORK = category(official.work); // internships, work experiences, apprenticeships
+export const GROUP = category(official.group); // none of them from the common core
+export const EVENT_KINDS = new Set(events.kinds); // outside and association events don't count
+
+// every project the page can show, plan or count xp from
+export const RNCP_PROJECTS = new Set([...Object.keys(official.names).map(Number), ...Object.keys(PISCINES).map(Number), ...Object.values(PISCINES).flatMap((p) => p.modules)]);
+
+// what the page gets: the student's own record, and the projects it needs to know (`legacy`:
+// one 42cursus no longer has, shown only to those who did it)
 export type Done = { mark: number; ok: boolean; at: string | null; status: string };
 export type RncpData = {
   fetchedAt: string;
   level: number;
   events: number;
   projects: Record<number, Done>;
-  catalog: Record<number, { name: string; xp: number; group: boolean }>;
+  catalog: Record<number, { name: string; xp: number; legacy?: boolean }>;
 };
 // project id -> the mark you plan to get
 export type Plan = Record<number, number>;
@@ -131,20 +74,20 @@ export type Plan = Record<number, number>;
 export type Step = { done: boolean; planned: boolean; busy: boolean; xp: number; planXp: number; baseXp: number };
 
 const BUSY = new Set(['in_progress', 'searching_a_group', 'creating_group', 'waiting_for_correction']);
+const parts = (id: number) => PISCINES[id]?.modules ?? [id];
+const gained = (data: RncpData, id: number, mark: number) => ((data.catalog[id]?.xp ?? 0) * mark) / 100;
 
 // one project: done (a piscine: its last module), planned or under way, and its xp
 export function step(id: number, data: RncpData, plan: Plan): Step {
   const piscine = PISCINES[id];
-  const parts = piscine ? piscine.modules : [id];
   const done = data.projects[piscine ? piscine.last : id]?.ok === true;
   const planned = !done && plan[id] != null;
   const s: Step = { done, planned, busy: false, xp: 0, planXp: 0, baseXp: 0 };
-  for (const m of parts) {
-    const base = data.catalog[m]?.xp ?? 0;
+  for (const m of parts(id)) {
     const p = data.projects[m];
-    s.baseXp += base;
-    if (p?.ok) s.xp += (base * p.mark) / 100;
-    else if (planned) s.planXp += (base * plan[id]) / 100;
+    s.baseXp += data.catalog[m]?.xp ?? 0;
+    if (p?.ok) s.xp += gained(data, m, p.mark);
+    else if (planned) s.planXp += gained(data, m, plan[id]);
     if (!done && p && !p.ok && BUSY.has(p.status)) s.busy = true;
   }
   return s;
@@ -152,8 +95,10 @@ export function step(id: number, data: RncpData, plan: Plan): Step {
 
 export type Tally = { count: number; planCount: number; xp: number; planXp: number; ok: boolean; okWithPlan: boolean };
 
-// a category: how many of its projects are done and the xp they gave, today and with the plan
+// a category: how many of its projects are done, and the xp of its xp list, today and with
+// the plan (a planned project adds the xp of what it has in that list)
 export function tally(c: Category, data: RncpData, plan: Plan): Tally {
+  const xpIds = new Set(c.xpIds);
   let count = 0;
   let planCount = 0;
   let xp = 0;
@@ -162,8 +107,11 @@ export function tally(c: Category, data: RncpData, plan: Plan): Tally {
     const s = step(id, data, plan);
     count += Number(s.done);
     planCount += Number(s.planned);
-    xp += s.xp;
-    planXp += s.planXp;
+    if (s.planned) for (const m of parts(id)) if (xpIds.has(m) && !data.projects[m]?.ok) planXp += gained(data, m, plan[id]);
+  }
+  for (const id of xpIds) {
+    const p = data.projects[id];
+    if (p?.ok) xp += gained(data, id, p.mark);
   }
   return { count, planCount, xp, planXp, ok: count >= c.count && xp >= c.xp, okWithPlan: count + planCount >= c.count && xp + planXp >= c.xp };
 }
@@ -172,16 +120,4 @@ export function tally(c: Category, data: RncpData, plan: Plan): Tally {
 export function levelWithPlan(data: RncpData, plan: Plan) {
   const xp = Object.keys(plan).reduce((sum, id) => sum + step(Number(id), data, plan).planXp, 0);
   return xpToLevel(levelToXp(data.level) + xp);
-}
-
-// group projects outside the common core, validated after ft_transcendence (a missing
-// date never counts); planned ones count once the core is done or planned too
-export function groupProjects(data: RncpData, plan: Plan) {
-  const counts = (id: number) => data.catalog[id]?.group === true && !CORE_GROUP.has(id);
-  const core = data.projects[CORE_END];
-  const coreAt = core?.ok ? core.at : null;
-  const done = coreAt ? Object.entries(data.projects).filter(([id, p]) => p.ok && counts(Number(id)) && p.at != null && p.at > coreAt).length : 0;
-  const coreOnTheWay = core?.ok === true || plan[CORE_END] != null;
-  const planned = coreOnTheWay ? Object.keys(plan).map(Number).filter((id) => !data.projects[id]?.ok && counts(id)).length : 0;
-  return { done, planned };
 }

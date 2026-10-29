@@ -33,7 +33,11 @@ Functions run in Paris (`vercel.json`), the Vercel region closest to Morocco.
 
 ## RNCP
 
-The RNCP page checks your own record against RNCP 6 (IT solutions designer and developer: web and mobile, or applicative) and RNCP 7 (IT architecture expert: information systems and networks, or database architecture and data), and lets you plan projects with the mark you expect. The requirements are 42's, from the "RNCP 6 certificate" and "RNCP 7 certificate" articles on meta.intra.42.fr, as checked on 26 October 2026 by [42calculator](https://github.com/lucas-ht/42calculator) and [42insight](https://github.com/fzphr/42insight); they live in `lib/rncp.ts`. Project names, XP and which projects are group ones come live from the 42 API (a ~30s fetch, kept a day); until it has arrived, the copy in `lib/server/catalog-seed.json` answers, so the page opens in a second or two. It holds course data only, no students. Refresh it now and then with `node --env-file=.env scripts/catalog-seed.mjs`.
+The RNCP page checks your own record against RNCP 6 (IT solutions designer and developer: option 1 web and mobile, option 2 applicative) and RNCP 7 (IT architecture expert: option 1 information systems and networks, option 2 database architecture and data), and lets you plan projects with the mark you expect.
+
+The rules and project lists are 42's own, from [gcc.42.fr](https://gcc.42.fr) (the Grand Cursus Checker): its rules and each option compiled, read on 29 October 2026, in `lib/rncp-official.json`. They're the same as gcc's: level, events (of the kinds gcc counts), 1 Suite project, 2 work experiences, 2 group projects outside the common core, and per category so many projects and so much XP. Projects 42cursus no longer lists, which gcc still counts for those who did them, are in `lib/server/legacy-projects.json` (`node --env-file=.env scripts/legacy-projects.mjs`). Project names and XP come live from the 42 API; a project's XP counts as its XP times your mark (42's awarded XP isn't open to apps like this one). The piscine module grouping is from [42calculator](https://github.com/lucas-ht/42calculator).
+
+To refresh the rules after 42 changes them: log in on gcc.42.fr, compile the four options, and rebuild `lib/rncp-official.json` from the answers.
 
 ## Credits
 

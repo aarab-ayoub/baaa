@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Plan } from '@/lib/rncp';
+import { RNCP_PROJECTS, type Plan } from '@/lib/rncp';
 
 const KEY = 'rncp-plan';
 
@@ -11,7 +11,8 @@ export function usePlan() {
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) || '{}') as Record<string, unknown>;
       const clean: Plan = {};
-      for (const [id, mark] of Object.entries(saved)) if (/^\d{1,6}$/.test(id) && typeof mark === 'number') clean[Number(id)] = mark;
+      // only projects the page still shows (a plan from an older version may have others)
+      for (const [id, mark] of Object.entries(saved)) if (RNCP_PROJECTS.has(Number(id)) && typeof mark === 'number') clean[Number(id)] = mark;
       setPlan(clean);
     } catch {}
   }, []);

@@ -1,7 +1,8 @@
 import 'server-only';
-import { RNCP_PROJECTS, type Done, type RncpData } from '@/lib/rncp';
+import { EVENT_KINDS, RNCP_PROJECTS, type Done, type RncpData } from '@/lib/rncp';
 import { get, getAll } from './api42';
 import { CURSUS } from './config';
+import legacy from './legacy-projects.json';
 import { once } from './once';
 import { catalog } from './projects';
 
@@ -33,9 +34,9 @@ async function load(login: string): Promise<RncpData> {
   // makes you wait (lib/server/projects.ts)
   const who = encodeURIComponent(login);
   const [u, signedUp, all] = await Promise.all([get<ApiUser>(`/v2/users/${who}`, true).then((r) => r.data), getAll<ApiEvent>(`/v2/users/${who}/events`, true), catalog()]);
-  // events you signed up for that already took place; outside ones and clubs' don't count
+  // events you signed up for that already took place, of the kinds gcc counts
   const now = Date.now();
-  const events = signedUp.filter((e) => e.kind !== 'extern' && e.kind !== 'association' && Date.parse(e.begin_at) <= now);
+  const events = signedUp.filter((e) => EVENT_KINDS.has(e.kind) && Date.parse(e.begin_at) <= now);
 
   // a project tried more than once: the validated try, else the latest
   const projects: Record<number, Done> = {};
@@ -46,12 +47,16 @@ async function load(login: string): Promise<RncpData> {
     if (!had || (p.ok && !had.ok) || (p.ok === had.ok && (p.at ?? '') > (had.at ?? ''))) projects[pu.project.id] = p;
   }
 
-  // names and xp of the projects the page shows, and of yours (for the group count)
+  // names and xp of the projects the page shows; the ones 42cursus no longer lists from
+  // legacy-projects.json (scripts/legacy-projects.mjs)
   const byId = new Map(all.map((p) => [p.id, p]));
+  const old = new Map(legacy.map((p) => [p.id, p]));
   const known: RncpData['catalog'] = {};
-  for (const id of [...RNCP_PROJECTS, ...Object.keys(projects).map(Number)]) {
+  for (const id of RNCP_PROJECTS) {
     const p = byId.get(id);
-    if (p) known[id] = { name: p.name, xp: p.xp, group: p.group };
+    const o = old.get(id);
+    if (p) known[id] = { name: p.name, xp: p.xp, ...(o && { legacy: true }) };
+    else if (o) known[id] = { name: o.name, xp: o.xp, legacy: true };
   }
   return {
     fetchedAt: new Date().toISOString(),

@@ -4,13 +4,13 @@ import { useEffect, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { CategoryCard } from '@/components/rncp/category-card';
-import { Bar, PlanButton, Verdict } from '@/components/rncp/parts';
+import { Bar, Verdict } from '@/components/rncp/parts';
 import { Bone } from '@/components/ui/skeleton';
 import { StatusLine } from '@/components/ui/status-line';
 import { memory } from '@/lib/client/memory';
 import { go } from '@/lib/client/nav';
 import { usePlan } from '@/lib/client/plan';
-import { CORE_END, EXPERIENCES, GROUP_PROJECTS, groupProjects, levelWithPlan, step, SUITE, tally, TITLES, TRACKS, type RncpData, type TrackId } from '@/lib/rncp';
+import { GROUP, levelWithPlan, SUITE, tally, TITLES, TRACKS, WORK, type RncpData, type TrackId } from '@/lib/rncp';
 import { cn } from '@/lib/utils';
 
 // the level and track pickers: each row shares the full width evenly
@@ -19,23 +19,23 @@ const PICK_ON = 'border-ink bg-ink text-white hover:text-white';
 // every category side by side on a wide screen, two per row on a tablet, one on a phone
 const COLUMNS: Record<number, string> = { 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4', 5: 'lg:grid-cols-5' };
 
-// the page in grey while your record is on its way: the four requirements, then a card per
+// the page in grey while your record is on its way: the three requirements, then a card per
 // category with its rows
 function RncpBones({ cards }: { cards: number }) {
   return (
     <div aria-hidden="true">
-      <div className="mb-3 grid gap-px overflow-hidden rounded-[14px] border border-[#ececec] bg-[#f0f0f0] lg:grid-cols-2">
-        {Array.from({ length: 4 }, (_, i) => (
-          <div key={i} className="flex items-center gap-4 bg-white px-4 py-3">
-            <span className="flex w-[170px] flex-none flex-col gap-[7px] phone:w-auto phone:flex-1">
-              <Bone className="h-[14px] w-[88px]" />
-              <Bone className="h-[11px] w-[130px]" />
+      <div className="mb-3 grid gap-px overflow-hidden rounded-[14px] border border-[#ececec] bg-[#f0f0f0] md:grid-cols-3">
+        {Array.from({ length: 3 }, (_, i) => (
+          <div key={i} className="flex flex-col gap-[8px] bg-white px-4 py-3">
+            <span className="flex items-start justify-between">
+              <span className="flex flex-col gap-[7px]">
+                <Bone className="h-[14px] w-[88px]" />
+                <Bone className="h-[11px] w-[130px]" />
+              </span>
+              <Bone className="h-[22px] w-[38px] rounded-full" />
             </span>
-            <span className="flex min-w-0 flex-1 flex-col gap-[9px] phone:hidden">
-              <Bone className="h-[14px] w-[70px]" />
-              <Bone className="h-[6px] w-full rounded-full" />
-            </span>
-            <Bone className="h-[22px] w-[38px] rounded-full" />
+            <Bone className="h-[14px] w-[70px]" />
+            <Bone className="h-[6px] w-full rounded-full" />
           </div>
         ))}
       </div>
@@ -68,19 +68,21 @@ function RncpBones({ cards }: { cards: number }) {
   );
 }
 
-// one line of the general requirements
+// one of the general requirements: what it is and its verdict, then where you stand
 function Requirement({ label, note, value, ok, withPlan, children }: { label: string; note: string; value: ReactNode; ok: boolean; withPlan: boolean; children?: ReactNode }) {
   return (
-    <div className="flex items-center gap-4 bg-white px-4 py-3 phone:flex-wrap phone:gap-x-3 phone:gap-y-2">
-      <div className="w-[170px] flex-none phone:w-auto phone:flex-1">
-        <div className="text-[14px] font-medium">{label}</div>
-        <div className="text-[12px] text-[#8a8a8a]">{note}</div>
+    <div className="flex flex-col bg-white px-4 py-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[14px] font-medium">{label}</div>
+          <div className="text-[12px] text-[#8a8a8a]">{note}</div>
+        </div>
+        <Verdict ok={ok} withPlan={withPlan} />
       </div>
-      <div className="min-w-0 flex-1 phone:order-last phone:basis-full">
-        <div className="mb-[6px] flex items-center gap-2 text-[14px] tabular-nums">{value}</div>
+      <div className="mt-auto pt-2">
+        <div className="mb-[6px] text-[14px] tabular-nums">{value}</div>
         {children}
       </div>
-      <Verdict ok={ok} withPlan={withPlan} />
     </div>
   );
 }
@@ -118,6 +120,7 @@ export function RncpView() {
       <div className="grid grid-cols-2 gap-2">
         {TRACKS.filter((t) => t.rncp === track.rncp).map((t) => (
           <button key={t.id} type="button" aria-pressed={t.id === track.id} onClick={() => choose(t.id)} className={cn(PICK, t.id === track.id && PICK_ON)}>
+            <span className="hidden font-normal opacity-70 md:inline">{`Option ${t.option} · `}</span>
             <span className="hidden md:inline">{t.name}</span>
             <span className="md:hidden">{t.short}</span>
           </button>
@@ -138,15 +141,13 @@ export function RncpView() {
 
   const level = data.level;
   const planned = levelWithPlan(data, plan);
-  const core = step(CORE_END, data, plan);
-  const groups = groupProjects(data, plan);
-  const cards = [...track.categories, SUITE, { ...EXPERIENCES, count: track.experiences }];
+  const groups = tally(GROUP, data, plan);
+  const cards = [...track.categories, SUITE, WORK];
   const tallies = cards.map((c) => tally(c, data, plan));
   const checks = [
     { ok: level >= track.level, withPlan: planned >= track.level },
     { ok: data.events >= track.events, withPlan: data.events >= track.events },
-    { ok: core.done, withPlan: core.done || core.planned },
-    { ok: groups.done >= GROUP_PROJECTS, withPlan: groups.done + groups.planned >= GROUP_PROJECTS },
+    { ok: groups.ok, withPlan: groups.okWithPlan },
     ...tallies.map((t) => ({ ok: t.ok, withPlan: t.okWithPlan })),
   ];
   const met = checks.filter((c) => c.ok).length;
@@ -169,8 +170,8 @@ export function RncpView() {
         )}
       </StatusLine>
 
-      {/* two per line on a wide screen; the 1px gaps over a grey background are the lines between them */}
-      <div className="mb-3 grid gap-px overflow-hidden rounded-[14px] border border-[#ececec] bg-[#f0f0f0] lg:grid-cols-2">
+      {/* side by side from a tablet up; the 1px gaps over a grey background are the lines between them */}
+      <div className="mb-3 grid gap-px overflow-hidden rounded-[14px] border border-[#ececec] bg-[#f0f0f0] md:grid-cols-3">
         <Requirement
           label="Level"
           note="42cursus"
@@ -180,29 +181,17 @@ export function RncpView() {
         >
           <Bar have={Math.min(level, track.level)} plan={Math.max(0, Math.min(planned, track.level) - level)} need={track.level} />
         </Requirement>
-        <Requirement label="Events" note="past ones you signed up for" value={`${data.events} / ${track.events}`} ok={checks[1].ok} withPlan={checks[1].withPlan}>
+        <Requirement label="Events" note="past ones, not outside or club events" value={`${data.events} / ${track.events}`} ok={checks[1].ok} withPlan={checks[1].withPlan}>
           <Bar have={data.events} need={track.events} />
         </Requirement>
         <Requirement
-          label="Common core"
-          note="ft_transcendence validated"
-          value={
-            <>
-              <span>{core.done ? 'Done' : core.planned ? 'Planned' : 'Not yet'}</span>
-              {!core.done && <PlanButton planned={core.planned} name="ft_transcendence" onClick={() => onPlan(CORE_END, core.planned ? null : 100)} />}
-            </>
-          }
+          label="Group projects"
+          note="outside the common core"
+          value={`${groups.count}${groups.planCount ? ` + ${groups.planCount} planned` : ''} / ${GROUP.count}`}
           ok={checks[2].ok}
           withPlan={checks[2].withPlan}
-        />
-        <Requirement
-          label="Group projects"
-          note="after ft_transcendence"
-          value={`${groups.done}${groups.planned ? ` + ${groups.planned} planned` : ''} / ${GROUP_PROJECTS}`}
-          ok={checks[3].ok}
-          withPlan={checks[3].withPlan}
         >
-          <Bar have={groups.done} plan={groups.planned} need={GROUP_PROJECTS} />
+          <Bar have={groups.count} plan={groups.planCount} need={GROUP.count} />
         </Requirement>
       </div>
 

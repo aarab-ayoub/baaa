@@ -15,6 +15,7 @@ export function CategoryCard({ category, data, plan, onPlan }: { category: Categ
   const rows: Row[] = category.ids
     .filter((id) => data.catalog[id])
     .map((id) => ({ id, name: data.catalog[id].name, mark: data.projects[PISCINES[id]?.last ?? id]?.mark, ...step(id, data, plan) }))
+    .filter((r) => !data.catalog[r.id].legacy || r.done || r.busy)
     .sort((a, b) => order(a) - order(b));
   const unit = category.count > 1 ? 'projects' : 'project';
   const plus = (n: number, text: string) => (n > 0 ? ` + ${text}` : '');
