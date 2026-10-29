@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { preload } from 'swr';
 import { useApp } from '@/components/app-shell';
+import { LoginLink } from '@/components/login-link';
 import { Logo } from '@/components/logo';
 import { Avatar } from '@/components/ui/avatar';
 import { fetcher } from '@/lib/client/fetcher';
@@ -183,10 +184,10 @@ export function Header({ nav }: { nav: boolean }) {
               <UserMenu onMyRank={myRank} />
             </>
           ) : (
-            <a className={CTA} href="/auth/login">
+            <LoginLink className={CTA} busy={<span className="phone:hidden">Connecting to 42…</span>}>
               <span className={cn(nav && 'phone:hidden')}>Continue with 42</span>
               {nav && <span className="hidden phone:inline">Sign in</span>}
-            </a>
+            </LoginLink>
           )}
         </div>
       </div>
